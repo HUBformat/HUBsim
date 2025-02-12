@@ -185,10 +185,17 @@ std::ostream& operator<<(std::ostream &os, const hub_float &hf) {
     return os;
 }
 
+hub_float sqrt(const hub_float &x)
+{
+    return hub_float::quantize(std::sqrt(static_cast<double>(x)));
+}
+
+
 // User–defined literal for hub_float.
 hub_float operator"" _hb(long double d) {
     return hub_float(static_cast<double>(d));
 }
+
 
 // -------------------------------------------------------------------
 // End of hub_float.cpp

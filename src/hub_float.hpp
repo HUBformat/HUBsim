@@ -26,6 +26,7 @@ public:
 
     std::string toBinaryString() const;
 
+    friend hub_float sqrt(const hub_float& x);
 
     // Friend function to output the hub_float.
     friend std::ostream& operator<<(std::ostream &os, const hub_float &hf);
