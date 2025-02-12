@@ -25,6 +25,8 @@ public:
     hub_float& operator/=(const hub_float &other);
 
     std::string toBinaryString() const;
+    std::string toHexString32() const;
+
 
     friend hub_float sqrt(const hub_float& x);
 

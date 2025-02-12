@@ -6,6 +6,8 @@
 #include <cstdint>  // For uint64_t
 #include <sstream>
 #include <bitset>
+#include <iomanip>
+
 
 
 // Enable access to the floating–point environment.
@@ -172,6 +174,30 @@ std::string hub_float::toBinaryString() const {
     oss << sign << "|" 
         << std::bitset<8>(static_cast<unsigned>(float_exp)) << "|" 
         << std::bitset<24>(custom_mantissa);
+    return oss.str();
+}
+
+std::string hub_float::toHexString32() const
+{
+    // First clear the hub bit and convert to float
+    double temp = value;
+    uint64_t bits64;
+    std::memcpy(&bits64, &temp, sizeof(bits64));
+    
+    // Clear bit 28 (the ILS bit)
+    bits64 &= ~(1ULL << 28);
+    std::memcpy(&temp, &bits64, sizeof(temp));
+    
+    // Convert to float
+    float f = static_cast<float>(temp);
+    
+    // Now get the bits of the float
+    uint32_t bits32;
+    std::memcpy(&bits32, &f, sizeof(bits32));
+
+    // Format as an 8-digit hex string
+    std::ostringstream oss;
+    oss << std::hex << std::setw(8) << std::setfill('0') << bits32;
     return oss.str();
 }
 

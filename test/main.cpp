@@ -31,7 +31,8 @@ int main() {
     hub_float pi = 3.14159_hb;
     std::cout << "pi = " << static_cast<double>(pi) << "\n";
     std::cout << "sqrt(pi) = " << static_cast<double>(sqrt(pi)) << "\n";
-    std::cout << "Binary representation of pi: " << sum.toBinaryString() << "\n";
+    std::cout << "Binary representation of pi: " << pi.toBinaryString() << "\n";
+    std::cout << "Hex representation of pi: " << pi.toHexString32() << "\n";
 
 
     return 0;
