@@ -9,6 +9,30 @@
 #include <iomanip>
 
 
+// Add these definitions
+#ifndef EXP_BITS
+#define EXP_BITS 8 // Double: 11
+#endif
+
+#ifndef MANT_BITS
+#define MANT_BITS 23 // Double: 52
+#endif
+
+// SHIFT = number of low-order bits in the double's mantissa that we will force/clear.
+static constexpr int SHIFT = 52 - MANT_BITS;
+
+// The bit (within bits 0..51 of a double's mantissa) we use to emulate the
+// "implicit leading 1" in a normalized IEEE style. For single precision (23 mantissa),
+// SHIFT = 29, so HUB_BIT = 1 << 28, matching the old code.
+static const uint64_t HUB_BIT = (1ULL << (SHIFT - 1));
+
+// The difference in biases: double's bias = 1023, custom bias = (1<<(EXP_BITS-1)) - 1.
+//static const int CUSTOM_BIAS = (1 << (EXP_BITS - 1)) - 1;
+static const int CUSTOM_BIAS = (1 << (EXP_BITS - 1)) - 1;
+static const int BIAS_DIFF   = 1023 - CUSTOM_BIAS; 
+// For single precision (EXP_BITS=8, MANT_BITS=23), BIAS_DIFF = 1023 - 127 = 896.
+
+
 
 // Enable access to the floating–point environment.
 #pragma STDC FENV_ACCESS ON
