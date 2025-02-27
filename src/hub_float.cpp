@@ -9,7 +9,6 @@
 #include <iomanip>
 
 
-// Add these definitions
 #ifndef EXP_BITS
 #define EXP_BITS 8 // Double: 11
 #endif
@@ -26,13 +25,11 @@ static constexpr int SHIFT = 52 - MANT_BITS;
 // SHIFT = 29, so HUB_BIT = 1 << 28, matching the old code.
 static const uint64_t HUB_BIT = (1ULL << (SHIFT - 1));
 
-// The difference in biases: double's bias = 1023, custom bias = (1<<(EXP_BITS-1)) - 1.
+// The difference in biases: double’s bias = 1023, custom bias = (1<<(EXP_BITS-1)) - 1.
 //static const int CUSTOM_BIAS = (1 << (EXP_BITS - 1)) - 1;
 static const int CUSTOM_BIAS = (1 << (EXP_BITS - 1)) - 1;
 static const int BIAS_DIFF   = 1023 - CUSTOM_BIAS; 
 // For single precision (EXP_BITS=8, MANT_BITS=23), BIAS_DIFF = 1023 - 127 = 896.
-
-
 
 // Enable access to the floating–point environment.
 #pragma STDC FENV_ACCESS ON
@@ -46,40 +43,47 @@ hub_float::hub_float() : value(0.0) {}
 
 // Construct from a float.
 // For normalized floats, convert to double exactly then force the extra bit.
-hub_float::hub_float(float f) {
+hub_float::hub_float(float f)
+{
+    // For zeros, infinities, subnormals, etc., just store as double
     if (f == 0.0f || !std::isfinite(f) || std::fpclassify(f) != FP_NORMAL) {
         value = static_cast<double>(f);
-        return;
+    } else {
+        // Convert to double exactly, then force it onto our grid
+        double d = static_cast<double>(f);
+        value = float_to_hub(d);
     }
-    double d = static_cast<double>(f);
-    value = float_to_hub(d);
 }
 
 // Construct from a double.
 // If the given double is already on the hub grid, accept it directly;
 // otherwise, quantize it by converting to float (which rounds to nearest)
 // and then using the float constructor.
-hub_float::hub_float(double d) {
-    if (d == 0.0 || !std::isfinite(d) || std::fpclassify(d) != FP_NORMAL) {
-        value = d;
-        return;
-    }
-    
+hub_float::hub_float(double d){
+    d = handle_specials(d);
+
+    // Check if 'd' is already on our custom grid
+    // We'll do that by re-applying the mask logic and comparing bits.
     uint64_t bits;
     std::memcpy(&bits, &d, sizeof(d));
-    
-    // The hub grid expects that, for a normalized value,
-    // the lower 29 bits of the double's significand equal 0x10000000.
-    const uint64_t mask29 = (1ULL << 29) - 1; // 29 ones.
-    uint64_t lower29 = bits & mask29;
-    
-    if (lower29 == (1ULL << 28)) {
-        // Already on the hub grid.
+
+    // If it's on the grid, the lower SHIFT bits must be exactly
+    // HUB_BIT in that block (assuming normal).
+    const uint64_t mask = ((1ULL << SHIFT) - 1ULL);  // SHIFT lower bits
+    const uint64_t desired = HUB_BIT;                // we want exactly this pattern
+
+    if ((bits & mask) == desired) {
+        // Already on the hub grid
         value = d;
     } else {
-        // Not on the grid; quantize via conversion to float.
-        hub_float tmp(static_cast<float>(d));
-        value = tmp.value;
+        // Not on the grid, quantize by converting to float (round to nearest)
+        // then re-running through float_to_hub
+        float f = static_cast<float>(d);
+        if (std::fpclassify(f) == FP_NORMAL) {
+            value = float_to_hub(static_cast<double>(f));
+        } else {
+            value = static_cast<double>(f);
+        }
     }
 }
 
@@ -89,57 +93,63 @@ hub_float::operator double() const {
 }
 
 // Helper: Force the extra (24th) significand bit in the double.
-double hub_float::float_to_hub(double d) {
-    // For non-normal numbers, just return d.
-    float f = static_cast<float>(d);
-    if (f == 0.0f || !std::isfinite(f) || std::fpclassify(f) != FP_NORMAL)
+double hub_float::float_to_hub(double d)
+{
+    // If not normal, just return it directly
+    if (!std::isfinite(d) || std::fpclassify(d) != FP_NORMAL) {
         return d;
-    
+    }
+
     uint64_t bits;
     std::memcpy(&bits, &d, sizeof(d));
-    
-    // The extra bit (24th bit) corresponds to bit 28 in the double's fraction.
-    const uint64_t hub_mask = (1ULL << 28);
-    
-    // Work on the magnitude only (preserve the sign).
-    if (bits & (1ULL << 63)) { // negative number
-        uint64_t mag = bits & ~(1ULL << 63);
-        mag |= hub_mask;
-        bits = mag | (1ULL << 63);
-    } else {
-        bits |= hub_mask;
-    }
-    
+
+    // 1) Zero out the lower (SHIFT - 1) bits
+    // 2) Force HUB_BIT (the "implicit" bit)
+    const uint64_t lowerMask = (1ULL << (SHIFT - 1)) - 1ULL; // bits below HUB_BIT
+    // Clear out everything below SHIFT - 1
+    bits &= ~lowerMask;
+    // Now ensure HUB_BIT is set
+    bits |= HUB_BIT;
+
+    // Put it back
     std::memcpy(&d, &bits, sizeof(d));
     return d;
 }
 
-// Helper: Quantize a double result using FE_DOWNWARD rounding.
-// This function temporarily sets the rounding mode to FE_DOWNWARD for the conversion.
-hub_float hub_float::quantize(double d) {
-    // If zero, subnormal, NaN, or Inf, just store directly
+// Helper: Quantize a double result using truncation.
+hub_float hub_float::quantize(double d)
+{
     if (d == 0.0 || !std::isfinite(d) || std::fpclassify(d) != FP_NORMAL) {
         return hub_float(d);
     }
 
-    // Convert the double to its raw bits using memcpy
+    // We do the same “mask and set” logic
     uint64_t bits;
-    std::memcpy(&bits, &d, sizeof(double));
+    std::memcpy(&bits, &d, sizeof(d));
 
-    // Clear out the lower 28 bits in the fraction field
-    bits &= ~((1ULL << 28) - 1ULL);
+    // Clear out the lower SHIFT-1 bits
+    const uint64_t lowerMask = (1ULL << (SHIFT - 1)) - 1ULL;
+    bits &= ~lowerMask;
 
-    // Force bit 28 (the "24th custom mantissa bit") to 1
-    bits |= (1ULL << 28);
+    // Force the "implicit" bit
+    bits |= HUB_BIT;
 
-    // Convert bits back to double using memcpy
+    // Convert bits back to double
     double truncated;
-    std::memcpy(&truncated, &bits, sizeof(double));
+    std::memcpy(&truncated, &bits, sizeof(truncated));
+
     return hub_float(truncated);
 }
 
-hub_float hub_float::operator+(const hub_float &other) const {
-    return quantize(this->value + other.value);
+double hub_float::handle_specials(double d) {
+    switch (std::fpclassify(d)) {
+        case FP_NAN:
+            return std::signbit(d) ? -std::numeric_limits<double>::infinity() : std::numeric_limits<double>::infinity();
+        case FP_SUBNORMAL:
+            return std::signbit(d) ? -0.0 : 0.0;
+        default:
+            return d;
+    }
 }
 
 hub_float hub_float::operator-(const hub_float &other) const {

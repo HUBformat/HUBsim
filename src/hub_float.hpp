@@ -43,6 +43,8 @@ private:
 
     // Helper: Quantize a double result (using downward rounding).
     static hub_float quantize(double d);
+    static double handle_specials(double d);
+
 };
 
 // User–defined literal for hub_float (literal suffix must start with an underscore).
