@@ -188,26 +188,37 @@ hub_float& hub_float::operator/=(const hub_float &other) {
 //
 //    S|EEEEEEEE|MMMMMMMMMMMMMMMMMMMMMMMM
 //
-std::string hub_float::toBinaryString() const {
+std::string hub_float::toBinaryString() const 
+{
+    // Grab the raw 64-bit representation of the double
     uint64_t bits;
-    std::memcpy(&bits, &value, sizeof(value));
-    
-    // For normalized numbers, extract the fields.
-    // Sign: bit 63.
-    int sign = (bits >> 63) & 0x1;
-    
-    // Double exponent: bits 62..52 (11 bits).
-    int double_exp = (bits >> 52) & 0x7FF;
-    // Compute the float exponent (8-bit) from the double exponent.
-    int float_exp = double_exp - 896; // since 1023 - 127 = 896.
-    
-    // Extract custom mantissa: we want the 24 bits starting from bit 28.
-    uint32_t custom_mantissa = (bits >> 28) & 0xFFFFFF; // 24 bits.
-    
+    std::memcpy(&bits, &value, sizeof(bits));
+
+    // 1) Sign bit: bit 63
+    int sign = (bits >> 63) & 1;
+
+    // 2) 11-bit exponent in bits [52..62]
+    int double_exp = static_cast<int>((bits >> 52) & 0x7FF);
+
+    // 3) Fraction (mantissa) bits: bits [0..51]
+    uint64_t fraction = bits & ((1ULL << 52) - 1ULL);
+
+    // Convert IEEE-754 double exponent to our custom exponent
+    int custom_exp = double_exp - BIAS_DIFF;  
+
+    // SHIFT = 52 - MANT_BITS
+    // We want (MANT_BITS+1) bits out of the fraction field
+    // => shift right by (SHIFT - 1)
+    // Example: MANT_BITS=5 => SHIFT=47 => SHIFT-1=46 => fraction>>46 leaves 6 bits
+    uint64_t custom_frac = fraction >> (SHIFT - 1); 
+
+    // Build the string: sign, exponent (EXP_BITS bits), fraction (MANT_BITS+1 bits)
     std::ostringstream oss;
-    oss << sign << "|" 
-        << std::bitset<8>(static_cast<unsigned>(float_exp)) << "|" 
-        << std::bitset<24>(custom_mantissa);
+    oss << sign << '|'
+        << std::bitset<EXP_BITS>(static_cast<unsigned long long>(custom_exp))
+        << '|'
+        << std::bitset<MANT_BITS+1>(custom_frac);
+
     return oss.str();
 }
 
