@@ -152,6 +152,10 @@ double hub_float::handle_specials(double d) {
     }
 }
 
+hub_float hub_float::operator+(const hub_float &other) const {
+    return quantize(this->value + other.value);
+}
+
 hub_float hub_float::operator-(const hub_float &other) const {
     return quantize(this->value - other.value);
 }
