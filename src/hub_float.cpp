@@ -68,12 +68,14 @@ hub_float::hub_float() : value(0.0) {}
 // For normalized floats, convert to double exactly then force the extra bit.
 hub_float::hub_float(float f)
 {
-    // For zeros, infinities, subnormals, etc., just store as double
-    if (f == 0.0f || !std::isfinite(f) || std::fpclassify(f) != FP_NORMAL) {
-        value = static_cast<double>(f);
+    double d = static_cast<double>(f);
+    int category = std::fpclassify(f);
+
+    if (category == FP_INFINITE || category == FP_ZERO || d == 1.0 || d == -1.0) {
+        value = d;
+    } else if (category == FP_NAN || category == FP_SUBNORMAL) {
+        value = handle_specials(d);
     } else {
-        // Convert to double exactly, then force it onto our grid
-        double d = static_cast<double>(f);
         value = float_to_hub(d);
     }
 }
@@ -83,7 +85,14 @@ hub_float::hub_float(float f)
 // otherwise, quantize it by converting to float (which rounds to nearest)
 // and then using the float constructor.
 hub_float::hub_float(double d){
-    d = handle_specials(d);
+    int category = std::fpclassify(d);
+    if (category == FP_INFINITE || category == FP_ZERO || d == 1.0 || d == -1.0) {
+        value = hub_float(d);
+        return;
+    } else if (category == FP_NAN || category == FP_SUBNORMAL){
+    	value = handle_specials(d);
+    	return;
+    }
 
     // Check if 'd' is already on our custom grid
     // We'll do that by re-applying the mask logic and comparing bits.
@@ -118,9 +127,11 @@ hub_float::operator double() const {
 // Helper: Force the extra (24th) significand bit in the double.
 double hub_float::float_to_hub(double d)
 {
-    // If not normal, just return it directly
-    if (!std::isfinite(d) || std::fpclassify(d) != FP_NORMAL) {
-        return d;
+    int category = std::fpclassify(d);
+    if (category == FP_INFINITE || category == FP_ZERO || d == 1.0 || d == -1.0) {
+        return hub_float(d);
+    } else if (category == FP_NAN || category == FP_SUBNORMAL){
+    	return handle_specials(d);
     }
 
     uint64_t bits;
@@ -142,8 +153,12 @@ double hub_float::float_to_hub(double d)
 // Helper: Quantize a double result using truncation.
 hub_float hub_float::quantize(double d)
 {
-    if (d == 0.0 || !std::isfinite(d) || std::fpclassify(d) != FP_NORMAL) {
+
+    int category = std::fpclassify(d);
+    if (category == FP_INFINITE || category == FP_ZERO || d == 1.0 || d == -1.0) {
         return hub_float(d);
+    } else if (category == FP_NAN || category == FP_SUBNORMAL){
+    	return handle_specials(d);
     }
 
     // We do the same “mask and set” logic
