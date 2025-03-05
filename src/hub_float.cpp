@@ -7,56 +7,22 @@
 #include <bitset>
 #include <iomanip>
 
-
-#ifndef EXP_BITS
-#define EXP_BITS 8 // Double: 11
-#endif
-
-#ifndef MANT_BITS
-#define MANT_BITS 23 // Double: 52
-#endif
-
-// SHIFT = number of low-order bits in the double's mantissa that we will force/clear.
-static constexpr int SHIFT = 52 - MANT_BITS;
-
-// The bit (within bits 0..51 of a double's mantissa) we use to emulate the
-// "implicit leading 1" in a normalized IEEE style. For single precision (23 mantissa),
-// SHIFT = 29, so HUB_BIT = 1 << 28, matching the old code.
-static const uint64_t HUB_BIT = (1ULL << (SHIFT - 1));
-
-// The difference in biases: double’s bias = 1023, custom bias = (1<<(EXP_BITS-1)) - 1.
-//static const int CUSTOM_BIAS = (1 << (EXP_BITS - 1)) - 1;
-static const int CUSTOM_BIAS = (1 << (EXP_BITS - 1)) - 1;
-static const int BIAS_DIFF   = 1023 - CUSTOM_BIAS; 
-// For single precision (EXP_BITS=8, MANT_BITS=23), BIAS_DIFF = 1023 - 127 = 896.
-
-
-constexpr int CUSTOM_MAX_EXP = (1 << EXP_BITS) - 2; // 254
-constexpr int doubleExp = CUSTOM_MAX_EXP + BIAS_DIFF; // 254 + 896 = 1150
-// Maximum custom significand (MANT_BITS+1 bits all ones)
-constexpr uint64_t customFrac = (1ULL << (MANT_BITS + 1)) - 1; // (1<<24)-1 = 0xFFFFFF
-// The double's fraction field is our custom fraction shifted left by (SHIFT-1) bits.
-constexpr uint64_t doubleFrac = customFrac << (SHIFT - 1);
-
-// Build the 64-bit bit patterns
-constexpr uint64_t maxBits = (static_cast<uint64_t>(doubleExp) << 52) | doubleFrac;
-constexpr uint64_t minBits = (1ULL << 63) | (static_cast<uint64_t>(doubleExp) << 52) | doubleFrac;
-
-const double maxVal = []() {
-    double d;
-    std::memcpy(&d, &maxBits, sizeof(d));
-    return d;
-}();
-
-const double minVal = []() {
-    double d;
-    std::memcpy(&d, &minBits, sizeof(d));
-    return d;
-}();
-
 // Enable access to the floating–point environment.
 #pragma STDC FENV_ACCESS ON
 
+const double hub_float::maxVal = []() {
+    double d;
+    uint64_t maxBitsCopy = hub_float::maxBits;
+    std::memcpy(&d, &maxBitsCopy, sizeof(d));
+    return d;
+}();
+
+const double hub_float::minVal = []() {
+    double d;
+    uint64_t minBitsCopy = hub_float::minBits;
+    std::memcpy(&d, &minBitsCopy, sizeof(d));
+    return d;
+}();
 // -------------------------------------------------------------------
 // Implementation of hub_float member functions
 // -------------------------------------------------------------------
