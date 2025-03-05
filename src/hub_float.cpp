@@ -36,10 +36,16 @@ hub_float::hub_float(float f) : hub_float(static_cast<double>(f)) {}
 
 // Construct from a double.
 // If the given double is already on the hub grid, accept it directly;
-// otherwise, quantize it by converting to float (which rounds to nearest)
-// and then using the float constructor.
+// otherwise, quantize it
 hub_float::hub_float(double d){
     int category = std::fpclassify(d);
+    
+    if (d > maxVal){
+        value = std::numeric_limits<double>::infinity();
+    } else if (d < minVal){
+        value = -std::numeric_limits<double>::infinity();
+    }
+    
     if (category == FP_INFINITE || category == FP_ZERO || d == 1.0 || d == -1.0) {
         value = hub_float(d);
         return;
@@ -63,10 +69,10 @@ hub_float::hub_float(double d){
         value = d;
     } else {
         // Not on the grid, quantize by converting to float (round to nearest)
-        // then re-running through float_to_hub
+        // then re-running through quantize
         float f = static_cast<float>(d);
         if (std::fpclassify(f) == FP_NORMAL) {
-            value = float_to_hub(static_cast<double>(f));
+            value = quantize(static_cast<double>(f));
         } else {
             value = static_cast<double>(f);
         }
