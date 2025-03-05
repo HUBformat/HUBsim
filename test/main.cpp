@@ -32,7 +32,7 @@ int main() {
     std::cout << "pi = " << static_cast<double>(pi) << "\n";
     std::cout << "sqrt(pi) = " << static_cast<double>(sqrt(pi)) << "\n";
     std::cout << "Binary representation of pi: " << pi.toBinaryString() << "\n";
-    std::cout << "Hex representation of pi: " << pi.toHexString32() << "\n";
+    std::cout << "Hex representation of pi: " << pi.toHexString() << "\n";
 
 
     return 0;

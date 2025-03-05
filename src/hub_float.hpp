@@ -32,14 +32,25 @@ public:
     hub_float& operator*=(const hub_float &other);
     hub_float& operator/=(const hub_float &other);
 
+    struct BitFields {
+        int sign;
+        int custom_exp;
+        uint64_t fraction;
+        uint64_t custom_frac;
+        uint64_t custom_frac_with_hub;
+    };
+
+    BitFields extractBitFields() const;
+
     std::string toBinaryString() const;
-    std::string toHexString32() const;
+    std::string toHexString() const;
 
 
     friend hub_float sqrt(const hub_float& x);
 
     // Friend function to output the hub_float.
     friend std::ostream& operator<<(std::ostream &os, const hub_float &hf);
+
 
 private:
     // Internally, the value is stored as a double that lies on our custom grid.

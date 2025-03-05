@@ -23,6 +23,7 @@ const double hub_float::minVal = []() {
     std::memcpy(&d, &minBitsCopy, sizeof(d));
     return d;
 }();
+
 // -------------------------------------------------------------------
 // Implementation of hub_float member functions
 // -------------------------------------------------------------------
@@ -33,6 +34,7 @@ hub_float::hub_float() : value(0.0) {}
 // Construct from a float.
 // Construct from a float by delegating to the double constructor
 hub_float::hub_float(float f) : hub_float(static_cast<double>(f)) {}
+
 
 // Construct from a double.
 // If the given double is already on the hub grid, accept it directly;
@@ -168,67 +170,65 @@ hub_float& hub_float::operator/=(const hub_float &other) {
     return *this;
 }
 
+// Extract all bit fields needed for string representations
+hub_float::BitFields hub_float::extractBitFields() const {
+    hub_float::BitFields fields;
+    uint64_t bits;
+    std::memcpy(&bits, &value, sizeof(bits));
+    
+    // Extract components
+    fields.sign = (bits >> 63) & 1;
+    int double_exp = static_cast<int>((bits >> 52) & 0x7FF);
+    fields.fraction = bits & ((1ULL << 52) - 1ULL);
+    
+    // Convert IEEE-754 double exponent to custom exponent
+    fields.custom_exp = double_exp - BIAS_DIFF;
+    
+    // Extract custom fraction bits (without HUB bit)
+    fields.custom_frac = (fields.fraction >> SHIFT) & ((1ULL << MANT_BITS) - 1);
+    
+    // For binary string representation, include HUB bit
+    fields.custom_frac_with_hub = fields.fraction >> (SHIFT - 1);
+    
+    return fields;
+}
+
 // This function extracts the custom hub_float representation in the following format:
 //
 //    S|EEEEEEEE|MMMMMMMMMMMMMMMMMMMMMMMM
 //
 std::string hub_float::toBinaryString() const 
 {
-    // Grab the raw 64-bit representation of the double
-    uint64_t bits;
-    std::memcpy(&bits, &value, sizeof(bits));
-
-    // 1) Sign bit: bit 63
-    int sign = (bits >> 63) & 1;
-
-    // 2) 11-bit exponent in bits [52..62]
-    int double_exp = static_cast<int>((bits >> 52) & 0x7FF);
-
-    // 3) Fraction (mantissa) bits: bits [0..51]
-    uint64_t fraction = bits & ((1ULL << 52) - 1ULL);
-
-    // Convert IEEE-754 double exponent to our custom exponent
-    int custom_exp = double_exp - BIAS_DIFF;  
-
-    // SHIFT = 52 - MANT_BITS
-    // We want (MANT_BITS+1) bits out of the fraction field
-    // => shift right by (SHIFT - 1)
-    // Example: MANT_BITS=5 => SHIFT=47 => SHIFT-1=46 => fraction>>46 leaves 6 bits
-    uint64_t custom_frac = fraction >> (SHIFT - 1); 
-
+    BitFields fields = extractBitFields();
+    
     // Build the string: sign, exponent (EXP_BITS bits), fraction (MANT_BITS+1 bits)
     std::ostringstream oss;
-    oss << sign << '|'
-        << std::bitset<EXP_BITS>(static_cast<unsigned long long>(custom_exp))
+    oss << fields.sign << '|'
+        << std::bitset<EXP_BITS>(static_cast<unsigned long long>(fields.custom_exp))
         << '|'
-        << std::bitset<MANT_BITS+1>(custom_frac);
+        << std::bitset<MANT_BITS+1>(fields.custom_frac_with_hub);
 
     return oss.str();
 }
 
-std::string hub_float::toHexString32() const
-{
-    // First clear the hub bit and convert to float
-    double temp = value;
-    uint64_t bits64;
-    std::memcpy(&bits64, &temp, sizeof(bits64));
+std::string hub_float::toHexString() const {
+    hub_float::BitFields fields = extractBitFields();
     
-    // Clear bit 28 (the ILS bit)
-    bits64 &= ~(1ULL << 28);
-    std::memcpy(&temp, &bits64, sizeof(temp));
-    
-    // Convert to float
-    float f = static_cast<float>(temp);
-    
-    // Now get the bits of the float
-    uint32_t bits32;
-    std::memcpy(&bits32, &f, sizeof(bits32));
+    // Pack components
+    const int total_bits = 1 + EXP_BITS + MANT_BITS;
+    const int hex_digits = (total_bits + 3) / 4; // Ceiling division
+    const uint64_t packed = (static_cast<uint64_t>(fields.sign) << (EXP_BITS + MANT_BITS)) |
+                           (static_cast<uint64_t>(fields.custom_exp) << MANT_BITS) |
+                           fields.custom_frac;
 
-    // Format as an 8-digit hex string
+    // Format hex string
     std::ostringstream oss;
-    oss << std::hex << std::setw(8) << std::setfill('0') << bits32;
+    oss << "0x" << std::hex << std::uppercase 
+        << std::setw(hex_digits) << std::setfill('0') << packed;
+    
     return oss.str();
 }
+
 
 // -------------------------------------------------------------------
 // Non-member functions
