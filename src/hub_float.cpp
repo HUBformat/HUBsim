@@ -85,58 +85,40 @@ hub_float::operator double() const {
 }
 
 // Helper: Force the extra (24th) significand bit in the double.
-double hub_float::float_to_hub(double d)
+double hub_float::quantize(double d)
 {
-    int category = std::fpclassify(d);
-    if (category == FP_INFINITE || category == FP_ZERO || d == 1.0 || d == -1.0) {
-        return hub_float(d);
-    } else if (category == FP_NAN || category == FP_SUBNORMAL){
-    	return handle_specials(d);
-    }
-
-    uint64_t bits;
-    std::memcpy(&bits, &d, sizeof(d));
-
-    // 1) Zero out the lower (SHIFT - 1) bits
-    // 2) Force HUB_BIT (the "implicit" bit)
-    const uint64_t lowerMask = (1ULL << (SHIFT - 1)) - 1ULL; // bits below HUB_BIT
-    // Clear out everything below SHIFT - 1
-    bits &= ~lowerMask;
-    // Now ensure HUB_BIT is set
-    bits |= HUB_BIT;
-
-    // Put it back
-    std::memcpy(&d, &bits, sizeof(d));
-    return d;
+    double special_result;
+    return handle_special_cases(d, special_result) ? special_result : apply_hub_grid(d);
 }
 
-// Helper: Quantize a double result using truncation.
-hub_float hub_float::quantize(double d)
-{
-
-    int category = std::fpclassify(d);
+// Special case handler
+inline bool hub_float::handle_special_cases(double d, double& result) {
+    const int category = std::fpclassify(d);
     if (category == FP_INFINITE || category == FP_ZERO || d == 1.0 || d == -1.0) {
-        return hub_float(d);
-    } else if (category == FP_NAN || category == FP_SUBNORMAL){
-    	return handle_specials(d);
+        result = d;
+        return true;
     }
+    if (category == FP_NAN || category == FP_SUBNORMAL) {
+        result = handle_specials(d);
+        return true;
+    }
+    return false;
+}
 
-    // We do the same “mask and set” logic
+// Grid alignment check
+inline bool hub_float::is_on_grid(double d) {
     uint64_t bits;
     std::memcpy(&bits, &d, sizeof(d));
+    return (bits & ((1ULL << SHIFT) - 1)) == HUB_BIT;
+}
 
-    // Clear out the lower SHIFT-1 bits
-    const uint64_t lowerMask = (1ULL << (SHIFT - 1)) - 1ULL;
-    bits &= ~lowerMask;
-
-    // Force the "implicit" bit
-    bits |= HUB_BIT;
-
-    // Convert bits back to double
-    double truncated;
-    std::memcpy(&truncated, &bits, sizeof(truncated));
-
-    return hub_float(truncated);
+// Bit manipulation core
+inline double hub_float::apply_hub_grid(double d) {
+    uint64_t bits;
+    std::memcpy(&bits, &d, sizeof(d));
+    bits = (bits & ~((1ULL << (SHIFT-1)) - 1)) | HUB_BIT;
+    std::memcpy(&d, &bits, sizeof(d));
+    return d;
 }
 
 double hub_float::handle_specials(double d) {

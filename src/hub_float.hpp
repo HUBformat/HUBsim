@@ -50,8 +50,13 @@ private:
     static double float_to_hub(double d);
 
     // Helper: Quantize a double result (using downward rounding).
-    static hub_float quantize(double d);
+    static double quantize(double d);
+    
+    // Helper functions for special case handling
+    static bool handle_special_cases(double d, double& result);
     static double handle_specials(double d);
+    static bool is_on_grid(double d);
+    static double apply_hub_grid(double d);
 
     
     // SHIFT = number of low-order bits in the double's mantissa that we will force/clear.
