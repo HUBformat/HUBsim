@@ -31,20 +31,8 @@ const double hub_float::minVal = []() {
 hub_float::hub_float() : value(0.0) {}
 
 // Construct from a float.
-// For normalized floats, convert to double exactly then force the extra bit.
-hub_float::hub_float(float f)
-{
-    double d = static_cast<double>(f);
-    int category = std::fpclassify(f);
-
-    if (category == FP_INFINITE || category == FP_ZERO || d == 1.0 || d == -1.0) {
-        value = d;
-    } else if (category == FP_NAN || category == FP_SUBNORMAL) {
-        value = handle_specials(d);
-    } else {
-        value = float_to_hub(d);
-    }
-}
+// Construct from a float by delegating to the double constructor
+hub_float::hub_float(float f) : hub_float(static_cast<double>(f)) {}
 
 // Construct from a double.
 // If the given double is already on the hub grid, accept it directly;
