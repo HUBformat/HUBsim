@@ -49,7 +49,7 @@ hub_float::hub_float(double d){
     }
     
     if (category == FP_INFINITE || category == FP_ZERO || d == 1.0 || d == -1.0) {
-        value = hub_float(d);
+        value = d;
         return;
     } else if (category == FP_NAN || category == FP_SUBNORMAL){
     	value = handle_specials(d);
