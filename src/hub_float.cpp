@@ -180,6 +180,22 @@ hub_float::BitFields hub_float::extractBitFields() const {
     fields.sign = (bits >> 63) & 1;
     int double_exp = static_cast<int>((bits >> 52) & 0x7FF);
     fields.fraction = bits & ((1ULL << 52) - 1ULL);
+
+    if (value == 1.0 || value == -1.0) {
+        // One: exponent is 2^(n_exp-1) and significand is 0
+        fields.custom_exp = (1 << (EXP_BITS - 1));
+        fields.custom_frac = 0;
+        fields.custom_frac_with_hub = 0;
+        return fields;
+    }
+
+    if (std::isinf(value)) {
+        // Infinity: all 1s for exponent and significand
+        fields.custom_exp = (1 << EXP_BITS) - 1;
+        fields.custom_frac = (1ULL << MANT_BITS) - 1;
+        fields.custom_frac_with_hub = ((1ULL << (MANT_BITS + 1)) - 1);
+        return fields;
+    }
     
     // Convert IEEE-754 double exponent to custom exponent
     fields.custom_exp = double_exp - BIAS_DIFF;
