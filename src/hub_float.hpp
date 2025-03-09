@@ -2,6 +2,8 @@
 #define HUB_FLOAT_HPP
 
 #include <iostream>
+#include <cstdint>  // For uint64_t
+
 
 #ifndef EXP_BITS
 #define EXP_BITS 8 // Double: 11
@@ -79,7 +81,11 @@ private:
     static const uint64_t HUB_BIT = (1ULL << (SHIFT - 1));
 
     // The difference in biases: double's bias = 1023, custom bias = (1<<(EXP_BITS-1)) - 1.
+    #ifdef ORIGINAL_IEE_BIAS
     static const int CUSTOM_BIAS = (1 << (EXP_BITS - 1)) - 1;
+    #else
+    static const int CUSTOM_BIAS = (1 << (EXP_BITS)) - 1;
+    #endif
     static const int BIAS_DIFF = 1023 - CUSTOM_BIAS; 
     // For single precision (EXP_BITS=8, MANT_BITS=23), BIAS_DIFF = 1023 - 127 = 896.
 
