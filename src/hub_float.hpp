@@ -84,7 +84,7 @@ private:
     #ifdef ORIGINAL_IEE_BIAS
     static const int CUSTOM_BIAS = (1 << (EXP_BITS - 1)) - 1;
     #else
-    static const int CUSTOM_BIAS = (1 << (EXP_BITS)) - 1;
+    static const int CUSTOM_BIAS = (1 << (EXP_BITS - 1 )) - 2;
     #endif
     static const int BIAS_DIFF = 1023 - CUSTOM_BIAS; 
     // For single precision (EXP_BITS=8, MANT_BITS=23), BIAS_DIFF = 1023 - 127 = 896.
