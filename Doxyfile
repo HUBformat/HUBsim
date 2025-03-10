@@ -1,0 +1,6 @@
+PROJECT_NAME           = "HUBsim"
+INPUT                  = README.md
+INPUT                 += ./src/
+USE_MDFILE_AS_MAINPAGE = README.md
+RECURSIVE              = YES
+HTML_OUTPUT            = doc/html
