@@ -1,0 +1,31 @@
+name: Generate Doxygen Documentation
+
+on:
+  push:
+    branches: [ main ]  # Adjust branch name as needed
+  workflow_dispatch:    # Allows manual triggering
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Create output directory
+        run: mkdir -p doc/html
+
+      - name: Generate Doxygen Documentation
+        uses: mattnotmitt/doxygen-action@1.9.8
+        with:
+          doxyfile-path: './Doxyfile'
+          
+      - name: Deploy to GitHub Pages
+        uses: JamesIves/github-pages-deploy-action@v4
+        with:
+          folder: doc/html  # Must match HTML_OUTPUT in Doxyfile
+          branch: gh-pages
+          commit-message: "Deploy Documentation for Commit ${{ github.sha }}" 
