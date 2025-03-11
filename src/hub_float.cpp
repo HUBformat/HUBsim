@@ -58,12 +58,6 @@ hub_float::hub_float(float f) : hub_float(static_cast<double>(f)) {}
 hub_float::hub_float(double d) {
     int category = std::fpclassify(d);
     
-    if (d > maxVal){
-        value = std::numeric_limits<double>::infinity();
-    } else if (d < minVal){
-        value = -std::numeric_limits<double>::infinity();
-    }
-    
     if (category == FP_INFINITE || category == FP_ZERO || d == 1.0 || d == -1.0) {
         value = d;
         return;
@@ -71,6 +65,13 @@ hub_float::hub_float(double d) {
     	value = handle_specials(d);
     	return;
     }
+
+    if (d > maxVal){
+        value = std::numeric_limits<double>::infinity();
+    } else if (d < minVal){
+        value = -std::numeric_limits<double>::infinity();
+    }
+    
 
     // Check if 'd' is already on our custom grid
     // We'll do that by re-applying the mask logic and comparing bits.
