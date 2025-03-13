@@ -35,6 +35,13 @@ const double hub_float::minVal = []() {
     return d;
 }();
 
+const double hub_float::lowestVal = []() {
+    double d;
+    uint64_t minPosBitsCopy = hub_float::minPosBits;
+    std::memcpy(&d, &minPosBitsCopy, sizeof(d));
+    return d;
+}();
+
 // -------------------------------------------------------------------
 // Implementation of hub_float member functions
 // -------------------------------------------------------------------

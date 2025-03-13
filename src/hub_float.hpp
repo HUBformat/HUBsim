@@ -266,6 +266,21 @@ private:
      * @brief Bit pattern for the minimum negative value
      */    
     static constexpr uint64_t minBits = (1ULL << 63) | (static_cast<uint64_t>(doubleExp) << 52) | doubleFrac;
+    /**
+     * @brief Minimum custom fraction
+     */ 
+    static constexpr uint64_t customMinFrac = 3ULL;  // Only LSB set to 1
+
+    /**
+    * @brief Double fraction field corresponding to minimum custom fraction
+    */
+    static constexpr uint64_t doubleMinFrac = customMinFrac << (SHIFT - 1);
+    
+    /**
+     * @brief Bit pattern for the minimum positive value
+     */
+    static constexpr uint64_t minPosBits = (static_cast<uint64_t>(BIAS_DIFF) << 52) | doubleMinFrac;
+
 
     /**
      * @brief Maximum representable value
@@ -276,6 +291,9 @@ private:
      * @brief Minimum representable value
      */    
     static const double minVal;
+
+    static const double lowestVal;
+
 };
 
 /**
