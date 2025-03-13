@@ -51,6 +51,12 @@ public:
      * @param d The double value to convert
      */
     hub_float(double d);      // Construct from double.
+
+    /**
+    * @brief Construct a hub_float from a raw binary representation
+    * @param binary_value The raw binary value representing the hub_float (sign, exponent, mantissa)
+    */
+    hub_float(uint32_t binary_value);
     
     /**
      * @brief Conversion operator to double
