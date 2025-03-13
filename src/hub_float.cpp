@@ -398,9 +398,10 @@ std::string hub_float::toHexString() const {
     // Pack components
     const int total_bits = 1 + EXP_BITS + MANT_BITS;
     const int hex_digits = (total_bits + 3) / 4; // Ceiling division
-    const uint64_t packed = (static_cast<uint64_t>(fields.sign) << (EXP_BITS + MANT_BITS)) |
-                           (static_cast<uint64_t>(fields.custom_exp) << MANT_BITS) |
-                           fields.custom_frac;
+    // Modify packing to use only required bits
+    const uint64_t packed = ((fields.sign & 0x1) << (EXP_BITS + MANT_BITS)) |
+    ((fields.custom_exp & ((1 << EXP_BITS)-1)) << MANT_BITS) |
+    (fields.custom_frac & ((1 << MANT_BITS)-1));
 
     // Format hex string
     std::ostringstream oss;
