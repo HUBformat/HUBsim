@@ -98,6 +98,53 @@ hub_float::hub_float(double d) {
     }
 }
 
+/**
+ * @brief Construct a hub_float from a raw binary representation
+ * @param binary_value The raw binary value representing the hub_float (sign, exponent, mantissa)
+ */
+hub_float::hub_float(uint32_t binary_value) {
+    // Extract components
+    int sign = (binary_value >> (EXP_BITS + MANT_BITS)) & 0x1;
+    uint64_t custom_exp = (binary_value >> MANT_BITS) & ((1 << EXP_BITS) - 1);
+    uint64_t custom_frac = binary_value & ((1 << MANT_BITS) - 1);
+    
+    // Handle special cases
+    if (custom_exp == 0 && custom_frac == 0) {
+        // Zero: (Sx, 0, 0) - both exponent and fraction must be zero
+        value = sign ? -0.0 : 0.0;
+        return;
+    }
+    
+    if (custom_exp == (1 << (EXP_BITS - 1)) && custom_frac == 0) {
+        // One: (Sx, 2^(n_exp-1), 0) - specific exponent value and fraction must be zero
+        value = sign ? -1.0 : 1.0;
+        return;
+    }
+    
+    if (custom_exp == ((1 << EXP_BITS) - 1) && custom_frac == ((1ULL << MANT_BITS) - 1)) {
+        // Infinity: (Sx, 2^(n_exp)-1, 2^(n_m)-1) - both exponent and fraction must be all ones
+        value = sign ? -std::numeric_limits<double>::infinity() : 
+                       std::numeric_limits<double>::infinity();
+        return;
+    }
+    
+    // Convert to double
+    // 1. Adjust the exponent from custom bias to IEEE double bias
+    int double_exp = custom_exp + BIAS_DIFF;
+    
+    // 2. Prepare the mantissa with the implicit HUB bit
+    uint64_t double_frac = (custom_frac << SHIFT) | HUB_BIT;
+    
+    // 3. Assemble the IEEE double bits
+    uint64_t double_bits = (static_cast<uint64_t>(sign) << 63) | 
+                          (static_cast<uint64_t>(double_exp) << 52) | 
+                          double_frac;
+    
+    // 4. Convert bits to double
+    std::memcpy(&value, &double_bits, sizeof(value));
+}
+
+
 
 /**
  * @brief Conversion to double implementation
