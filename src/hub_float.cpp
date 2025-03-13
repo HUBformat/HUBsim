@@ -68,7 +68,7 @@ hub_float::hub_float(double d) {
     if (category == FP_INFINITE || category == FP_ZERO || d == 1.0 || d == -1.0) {
         value = d;
         return;
-    } else if (category == FP_NAN || category == FP_SUBNORMAL){
+    } else if (category == FP_NAN || (std::abs(d) < lowestVal && d != 0.0 && d != -0.0)){
     	value = handle_specials(d);
     	return;
     }
@@ -184,7 +184,7 @@ inline bool hub_float::handle_special_cases(double d, double& result) {
         result = d;
         return true;
     }
-    if (category == FP_NAN || category == FP_SUBNORMAL) {
+    if (category == FP_NAN || (std::abs(d) < lowestVal && d != 0.0 && d != -0.0))  {
         result = handle_specials(d);
         return true;
     }
@@ -222,13 +222,12 @@ inline double hub_float::apply_hub_grid(double d) {
  * @return The handled result
  */
 double hub_float::handle_specials(double d) {
-    switch (std::fpclassify(d)) {
-        case FP_NAN:
-            return std::signbit(d) ? -std::numeric_limits<double>::infinity() : std::numeric_limits<double>::infinity();
-        case FP_SUBNORMAL:
-            return std::signbit(d) ? -0.0 : 0.0;
-        default:
-            return d;
+    if (std::fpclassify(d) == FP_NAN) {
+        return std::signbit(d) ? -std::numeric_limits<double>::infinity() : std::numeric_limits<double>::infinity();
+    } else if (std::abs(d) < lowestVal && d != 0.0 && d != -0.0) {
+        return std::signbit(d) ? -0.0 : 0.0;
+    } else {
+        return d;
     }
 }
 
