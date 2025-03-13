@@ -328,6 +328,13 @@ hub_float::BitFields hub_float::extractBitFields() const {
     int double_exp = static_cast<int>((bits >> 52) & 0x7FF);
     fields.fraction = bits & ((1ULL << 52) - 1ULL);
 
+    if (value == 0.0 || value == -0.0) {
+        fields.custom_exp = 0;
+        fields.custom_frac = 0;
+        fields.custom_frac_with_hub = 0;
+        return fields;
+    }
+
     if (value == 1.0 || value == -1.0) {
         // One: exponent is 2^(n_exp-1) and significand is 0
         fields.custom_exp = (1 << (EXP_BITS - 1));
