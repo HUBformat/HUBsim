@@ -229,6 +229,7 @@ private:
     static const int CUSTOM_BIAS = (1 << (EXP_BITS - 1)) - 1;
     #else
     static const int CUSTOM_BIAS = (1 << (EXP_BITS - 1 )) - 2;
+    static const int CUSTOM_BIAS = (1 << (EXP_BITS - 1));
     #endif
 
     /**
@@ -240,6 +241,7 @@ private:
      * @brief Maximum value for the custom exponent
      */
     static constexpr int CUSTOM_MAX_EXP = (1 << EXP_BITS) - 2; // 254
+    static constexpr int CUSTOM_MAX_EXP = (1 << EXP_BITS) - 1;
 
     /**
      * @brief Maximum value for the double exponent corresponding to custom max
@@ -249,6 +251,7 @@ private:
      * @brief Maximum custom significand (all bits set)
      */    
     static constexpr uint64_t customFrac = (1ULL << (MANT_BITS + 1)) - 1; // (1<<24)-1 = 0xFFFFFF
+    static constexpr uint64_t customFrac = ((1ULL << (MANT_BITS + 1)) - 1) & ~(1ULL << 1);
     /**
      * @brief Double fraction field corresponding to maximum custom fraction
      */
