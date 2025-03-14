@@ -210,15 +210,17 @@ inline bool hub_float::is_on_grid(double d) {
 inline double hub_float::apply_hub_grid(double d) {
     uint64_t bits;
 
+
+    std::memcpy(&bits, &d, sizeof(d));
+    bits = (bits & ~((1ULL << (SHIFT-1)) - 1)) | HUB_BIT;
+    std::memcpy(&d, &bits, sizeof(d));
+
     if (d > maxVal){
         return std::numeric_limits<double>::infinity();
     } else if (d < minVal){
         return -std::numeric_limits<double>::infinity();
     }
-
-    std::memcpy(&bits, &d, sizeof(d));
-    bits = (bits & ~((1ULL << (SHIFT-1)) - 1)) | HUB_BIT;
-    std::memcpy(&d, &bits, sizeof(d));
+    
     return d;
 }
 
