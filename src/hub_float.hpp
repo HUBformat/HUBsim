@@ -412,7 +412,8 @@ private:
        Constant: customMinFrac
        Minimum custom significand with only the least significant bit set to 1.
     */
-    static constexpr uint64_t customMinFrac = 3ULL;  // Only LSB set to 1
+    static constexpr uint64_t customMinFrac = 1ULL; 
+
 
     /*
        Constant: doubleMinFrac
