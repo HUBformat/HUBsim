@@ -267,7 +267,7 @@ private:
     /**
      * @brief Minimum custom fraction
      */ 
-    static constexpr uint64_t customMinFrac = 3ULL;  // Only LSB set to 1
+    static constexpr uint64_t customMinFrac = 1ULL; 
 
     /**
     * @brief Double fraction field corresponding to minimum custom fraction
