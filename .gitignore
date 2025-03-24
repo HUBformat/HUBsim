@@ -54,5 +54,5 @@
 /.idea
 
 
-./doc/html/*
-./doc/README.html
+/doc/html/*
+/doc/README.html
