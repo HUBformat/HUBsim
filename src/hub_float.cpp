@@ -1,8 +1,7 @@
-/**
- * @file hub_float.cpp
- * @brief Implementation of the hub_float class
- */
-
+/*
+    File: hub_float.cpp
+    Implementation of the hub_float class.
+*/
 #include "hub_float.hpp"
 
 #include <cmath>
@@ -15,9 +14,10 @@
 // Enable access to the floating–point environment.
 #pragma STDC FENV_ACCESS ON
 
-/**
- * @brief Initialize the maximum representable value
- */
+/*
+    Variable: maxVal
+    The maximum representable value for hub_float.
+*/
 const double hub_float::maxVal = []() {
     double d;
     uint64_t maxBitsCopy = hub_float::maxBits;
@@ -25,9 +25,10 @@ const double hub_float::maxVal = []() {
     return d;
 }();
 
-/**
- * @brief Initialize the minimum representable value
- */
+/*
+    Variable: minVal
+    The minimum representable value for hub_float.
+*/
 const double hub_float::minVal = []() {
     double d;
     uint64_t minBitsCopy = hub_float::minBits;
@@ -35,6 +36,10 @@ const double hub_float::minVal = []() {
     return d;
 }();
 
+/*
+    Variable: lowestVal
+    The lowest representable absolute value for hub_float.
+*/
 const double hub_float::lowestVal = []() {
     double d;
     uint64_t minPosBitsCopy = hub_float::minPosBits;
@@ -46,22 +51,28 @@ const double hub_float::lowestVal = []() {
 // Implementation of hub_float member functions
 // -------------------------------------------------------------------
 
-/**
- * @brief Default constructor implementation
- */
+/*
+    Function: hub_float
+    Default constructor. Initializes the value to zero.
+*/
 hub_float::hub_float() : value(0.0) {}
 
-/**
- * @brief Float constructor implementation
- * @param f The float value to convert
- */
+/*
+    Function: hub_float
+    Constructor that converts a float to a hub_float.
+
+    Parameters:
+        f - The float value to convert.
+*/
 hub_float::hub_float(float f) : hub_float(static_cast<double>(f)) {}
 
+/*
+    Function: hub_float
+    Constructor that converts a double to a hub_float.
 
-/**
- * @brief Double constructor implementation
- * @param d The double value to convert
- */
+    Parameters:
+        d - The double value to convert.
+*/
 hub_float::hub_float(double d) {
     int category = std::fpclassify(d);
     
@@ -105,10 +116,13 @@ hub_float::hub_float(double d) {
     }
 }
 
-/**
- * @brief Construct a hub_float from a raw binary representation
- * @param binary_value The raw binary value representing the hub_float (sign, exponent, mantissa)
- */
+/*
+    Function: hub_float
+    Constructor that creates a hub_float from a raw binary representation.
+
+    Parameters:
+        binary_value - The raw binary value representing the sign, exponent, and mantissa.
+*/
 hub_float::hub_float(uint32_t binary_value) {
     // Extract components
     int sign = (binary_value >> (EXP_BITS + MANT_BITS)) & 0x1;
@@ -151,33 +165,44 @@ hub_float::hub_float(uint32_t binary_value) {
     std::memcpy(&value, &double_bits, sizeof(value));
 }
 
+/*
+   Function: operator double
+   Converts a hub_float to a double.
 
-
-/**
- * @brief Conversion to double implementation
- * @return The internal value as a double
- */
+   Returns:
+       The internal value as a double.
+*/
 hub_float::operator double() const {
     return value;
 }
 
-/**
- * @brief Quantize a double to the hub_float grid
- * @param d The double value to quantize
- * @return The quantized double value
- */
+/*
+   Function: quantize
+   Quantizes a double to the nearest point on the hub grid.
+
+   Parameters:
+       d - The double value to quantize.
+
+   Returns:
+       The quantized double value.
+*/
 double hub_float::quantize(double d)
 {
     double special_result;
     return handle_special_cases(d, special_result) ? special_result : apply_hub_grid(d);
 }
 
-/**
- * @brief Handle special cases in floating-point operations
- * @param d The input double value
- * @param result The output result if a special case is detected
- * @return True if a special case was handled, false otherwise
- */
+/*
+   Function: handle_special_cases
+   Handles special floating-point cases like NaN and infinity.
+
+   Parameters:
+       d - The input double value.
+       result - Output result for special cases.
+
+   Returns:
+       True if a special case was handled; false otherwise.
+*/
 inline bool hub_float::handle_special_cases(double d, double& result) {
     const int category = std::fpclassify(d);
     if (category == FP_INFINITE || category == FP_ZERO || d == 1.0 || d == -1.0) {
@@ -191,22 +216,32 @@ inline bool hub_float::handle_special_cases(double d, double& result) {
     return false;
 }
 
-/**
- * @brief Check if a double value is already on the hub grid
- * @param d The double value to check
- * @return True if the value is on the grid, false otherwise
- */
+/*
+    Function: is_on_grid
+    Checks if a double value is already on the hub grid.
+
+    Parameters:
+        d - The double value to check.
+
+    Returns:
+        True if the value is on the grid, false otherwise.
+*/
 inline bool hub_float::is_on_grid(double d) {
     uint64_t bits;
     std::memcpy(&bits, &d, sizeof(d));
     return (bits & ((1ULL << SHIFT) - 1)) == HUB_BIT;
 }
 
-/**
- * @brief Apply the hub grid to a double value
- * @param d The double value to quantize
- * @return The quantized double value
- */
+/*
+    Function: apply_hub_grid
+    Applies the hub grid to a double value.
+
+    Parameters:
+        d - The double value to quantize.
+
+    Returns:
+        The quantized double value.
+*/
 inline double hub_float::apply_hub_grid(double d) {
     uint64_t bits;
 
@@ -224,12 +259,16 @@ inline double hub_float::apply_hub_grid(double d) {
     return d;
 }
 
+/*
+    Function: handle_specials
+    Handles special values like NaN and subnormal numbers.
 
-/**
- * @brief Handle special values (NaN, subnormal)
- * @param d The input double value
- * @return The handled result
- */
+    Parameters:
+        d - The input double value.
+
+    Returns:
+        The processed result for special values.
+*/
 double hub_float::handle_specials(double d) {
     if (std::fpclassify(d) == FP_NAN) {
         return std::signbit(d) ? -std::numeric_limits<double>::infinity() : std::numeric_limits<double>::infinity();
@@ -240,86 +279,129 @@ double hub_float::handle_specials(double d) {
     }
 }
 
-/**
- * @brief Addition operator implementation
- * @param other The hub_float to add
- * @return A new hub_float containing the sum
- */
+/*
+    Function: operator+
+    Adds two hub_float values.
+
+    Parameters:
+        other - The hub_float to add.
+
+    Returns:
+        A new hub_float containing the sum.
+*/
 hub_float hub_float::operator+(const hub_float &other) const {
     return quantize(this->value + other.value);
 }
 
-/**
- * @brief Subtraction operator implementation
- * @param other The hub_float to subtract
- * @return A new hub_float containing the difference
- */
+/*
+    Function: operator-
+    Subtracts one hub_float from another.
+
+    Parameters:
+        other - The hub_float to subtract.
+
+    Returns:
+        A new hub_float containing the difference.
+*/
 hub_float hub_float::operator-(const hub_float &other) const {
     return quantize(this->value - other.value);
 }
 
-/**
- * @brief Multiplication operator implementation
- * @param other The hub_float to multiply by
- * @return A new hub_float containing the product
- */
+/*
+    Function: operator*
+    Multiplies two hub_float values.
+
+    Parameters:
+        other - The hub_float to multiply by.
+
+    Returns:
+        A new hub_float containing the product.
+*/
 hub_float hub_float::operator*(const hub_float &other) const {
     return quantize(this->value * other.value);
 }
 
-/**
- * @brief Division operator implementation
- * @param other The hub_float to divide by
- * @return A new hub_float containing the quotient
- */
+/*
+    Function: operator/
+    Divides one hub_float by another.
+
+    Parameters:
+        other - The hub_float to divide by.
+
+    Returns:
+        A new hub_float containing the quotient.
+*/
 hub_float hub_float::operator/(const hub_float &other) const {
     return quantize(this->value / other.value);
 }
 
-/**
- * @brief Addition assignment operator implementation
- * @param other The hub_float to add
- * @return Reference to this object after addition
- */
+/*
+    Function: operator+=
+    Adds another hub_float to this one and assigns the result.
+
+    Parameters:
+        other - The hub_float to add.
+
+    Returns:
+        A reference to this object after addition.
+*/
 hub_float& hub_float::operator+=(const hub_float &other) {
     *this = *this + other;
     return *this;
 }
 
-/**
- * @brief Subtraction assignment operator implementation
- * @param other The hub_float to subtract
- * @return Reference to this object after subtraction
- */
+/*
+    Function: operator-=
+    Subtracts another hub_float from this one and assigns the result.
+
+    Parameters:
+        other - The hub_float to subtract.
+
+    Returns:
+        A reference to this object after subtraction.
+*/
 hub_float& hub_float::operator-=(const hub_float &other) {
     *this = *this - other;
     return *this;
 }
 
-/**
- * @brief Multiplication assignment operator implementation
- * @param other The hub_float to multiply by
- * @return Reference to this object after multiplication
- */
+/*
+    Function: operator*=
+    Multiplies this object by another hub_float and assigns the result.
+
+    Parameters:
+        other - The hub_float to multiply by.
+
+    Returns:
+        A reference to this object after multiplication.
+*/
 hub_float& hub_float::operator*=(const hub_float &other) {
     *this = *this * other;
     return *this;
 }
 
-/**
- * @brief Division assignment operator implementation
- * @param other The hub_float to divide by
- * @return Reference to this object after division
- */
+/*
+   Function: operator/=
+   Divides this object by another hub_float and assigns the result.
+
+   Parameters:
+       other - The hub_float to divide by.
+
+   Returns:
+       A reference to this object after division.
+*/
 hub_float& hub_float::operator/=(const hub_float &other) {
     *this = *this / other;
     return *this;
 }
 
-/**
- * @brief Extract the bit fields from the internal representation
- * @return A BitFields structure containing the extracted fields
- */
+/*
+   Function: extractBitFields
+   Extracts the bit fields from the internal representation of a hub_float.
+
+   Returns:
+       A BitFields structure containing the extracted fields (sign, exponent, fraction).
+*/
 hub_float::BitFields hub_float::extractBitFields() const {
     hub_float::BitFields fields;
     uint64_t bits;
@@ -365,12 +447,13 @@ hub_float::BitFields hub_float::extractBitFields() const {
     return fields;
 }
 
-/**
- * @brief Convert the hub_float to a binary string representation
- * @return String in S|EEEEEEEE|MMMMMMMMMMMMMMMMMMMMMMMM format
- * @see extractBitFields()
- * @see toHexString()
- */
+/*
+   Function: toBinaryString
+   Converts a hub_float to its binary string representation in the format S|EEEEEEEE|MMMMMMMMMMMMMMMMMMMMMMMM.
+
+   Returns:
+       A string representing the binary format of the number.
+*/
 std::string hub_float::toBinaryString() const {
     BitFields fields = extractBitFields();
     
@@ -384,16 +467,13 @@ std::string hub_float::toBinaryString() const {
     return oss.str();
 }
 
-/**
- * @brief Convert the hub_float to a hexadecimal string representation
- * 
- * This function converts the hub_float value to a hexadecimal string representation.
- * The resulting string includes the sign bit, exponent bits, and mantissa bits,
- * packed together and represented as a hexadecimal number.
- * 
- * @return A string containing the hexadecimal representation of the hub_float value,
- *         prefixed with "0x" and padded with leading zeros if necessary.
- */
+/*
+   Function: toHexString
+   Converts a hub_float to its hexadecimal string representation in a compact format.
+
+   Returns:
+       A string containing the hexadecimal representation of the number prefixed with "0x".
+*/
 std::string hub_float::toHexString() const {
     hub_float::BitFields fields = extractBitFields();
     
@@ -418,44 +498,47 @@ std::string hub_float::toHexString() const {
 // Non-member functions
 // -------------------------------------------------------------------
 
-/**
- * @brief Stream insertion operator for hub_float
- * 
- * This operator allows hub_float objects to be output to standard output streams.
- * It outputs the internal double value of the hub_float object.
- * 
- * @param os The output stream to write to
- * @param hf The hub_float object to output
- * @return A reference to the output stream
- */
+/*
+   Function: operator<<
+   Outputs a human-readable representation of a hub_float to an output stream.
+
+   Parameters:
+       os - The output stream.
+       hf - The hub_float object to output.
+
+   Returns:
+       A reference to the output stream after writing.
+*/
 std::ostream& operator<<(std::ostream &os, const hub_float &hf) {
     os << hf.value;
     return os;
 }
 
-/**
- * @brief Calculate the square root of a hub_float value
- * 
- * This function computes the square root of the given hub_float value.
- * The result is quantized to ensure it conforms to the hub_float representation.
- * 
- * @param x The hub_float value to calculate the square root of
- * @return A new hub_float object representing the square root of x
- */
+/*
+   Function: sqrt
+   Computes the square root of a given hub_float value, ensuring it conforms to the custom grid representation.
+
+   Parameters:
+       x - The input value as a hub_float.
+
+   Returns:
+       A new quantized result as a square root in grid form.
+*/
 hub_float sqrt(const hub_float &x) {
     return hub_float::quantize(std::sqrt(static_cast<double>(x)));
 }
 
 
-/**
- * @brief User-defined literal for creating hub_float objects
- * 
- * This operator allows for the creation of hub_float objects using a literal suffix.
- * It converts a long double literal to a hub_float object.
- * 
- * @param d The long double value to convert to a hub_float
- * @return A new hub_float object representing the given value
- */
+/*
+   Function: operator"" _hb
+   User-defined literal for creating a `hub_float` from a literal value with `_hb` suffix.
+
+   Parameters:
+       d - The long double literal value being converted into `hub`.
+
+  Return 
+	   An equivalent `Hub_Float` instance 
+*/       
 hub_float operator"" _hb(long double d) {
     return hub_float(static_cast<double>(d));
 }
