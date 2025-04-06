@@ -57,6 +57,11 @@ hub_float::hub_float() : value(0.0) {}
  */
 hub_float::hub_float(float f) : hub_float(static_cast<double>(f)) {}
 
+/**
+ * @brief Integer constructor implementation
+ * @param i The integer value to convert
+ */
+hub_float::hub_float(int i) : hub_float(static_cast<double>(i)) {}
 
 /**
  * @brief Double constructor implementation

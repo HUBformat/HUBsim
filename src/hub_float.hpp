@@ -52,6 +52,13 @@ public:
      */
     hub_float(double d);      // Construct from double.
 
+    
+    /**
+     * @brief Construct from int (to resolve ambiguity with literals)
+     * @param i The integer value to convert
+     */
+    hub_float(int i);         // Construct from int.
+    
     /**
     * @brief Construct a hub_float from a raw binary representation
     * @param binary_value The raw binary value representing the hub_float (sign, exponent, mantissa)
