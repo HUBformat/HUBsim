@@ -1,0 +1,404 @@
+/*
+Licensed under the MIT License given below.
+Copyright 2023 Daniel Lidstrom
+Permission is hereby granted, free of charge, to any person obtaining a copy of
+this software and associated documentation files (the “Software”), to deal in
+this Software without restriction, including without limitation the rights to
+use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of
+the Software, and to permit persons to whom the Software is furnished to do so,
+subject to the following conditions:
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS
+FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
+COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER
+IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
+CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+*/
+
+#include "neural.h"
+#include "hub_float.hpp" // Include for hub_float type
+#include <iomanip>
+#include <iostream>
+
+using namespace Neural;
+
+namespace {
+    const int ITERS = 4000;
+    const double lr = 1.0;
+    u_int32_t P = 2147483647;
+    u_int32_t A = 16807;
+    u_int32_t current = 1;
+    double Rand() {
+        current = current * A % P;
+        double result = (double)current / P;
+        return result;
+    }
+
+    size_t Xor(size_t i, size_t j) { return i ^ j; }
+    size_t Xnor(size_t i, size_t j) { return 1 - Xor(i, j); }
+    size_t Or(size_t i, size_t j) { return i | j; }
+    size_t And(size_t i, size_t j) { return i & j; }
+    size_t Nor(size_t i, size_t j) { return 1 - Or(i, j); }
+    size_t Nand(size_t i, size_t j) { return 1 - And(i, j); }
+}
+
+template<typename T>
+void show_weights(const Network_t<T>& network);
+
+int main() {
+    Matrix inputs = Matrix();
+    Matrix outputs = Matrix();
+    for (size_t i = 0; i < 2; i++) {
+        for (size_t j = 0; j < 2; j++) {
+            inputs.push_back({ (double)i, (double)j});
+            outputs.push_back({
+                (double)Xor(i, j),
+                (double)Xnor(i, j),
+                (double)Or(i, j),
+                (double)And(i, j),
+                (double)Nor(i, j),
+                (double)Nand(i, j)
+            });
+        }
+    }
+
+    Trainer trainer = Trainer::Create(2, 2, 6, Rand);
+    for (size_t i = 0; i < ITERS; i++) {
+        const Vector& input = inputs[i % inputs.size()];
+        const Vector& output = outputs[i % outputs.size()];
+        trainer.Train(input, output, lr);
+    }
+
+    // Use the original double network for results
+    const Network& doubleNetwork = trainer.network;
+    
+    std::cout
+        << "Result after "
+        << ITERS
+        << " iterations (double precision):\n"
+        << "        XOR   XNOR    OR   AND   NOR   NAND\n";
+        
+    for (size_t i = 0; i < inputs.size(); i++) {
+        const Vector& input = inputs[i];
+        Vector pred = doubleNetwork.Predict(input);
+        std::cout
+            << std::fixed
+            << std::setprecision(0)
+            << input[0]
+            << ','
+            << input[1]
+            << " = "
+            << std::setprecision(3)
+            << pred[0]
+            << "  "
+            << pred[1]
+            << " "
+            << pred[2]
+            << " "
+            << pred[3]
+            << " "
+            << pred[4]
+            << "  "
+            << pred[5]
+            << '\n';
+    }
+    
+    // Create a float network from the trained double network
+    Network_t<float> floatNetwork = Network_t<float>::FromDouble(doubleNetwork);
+    
+    std::cout << "\nResult with float precision:\n"
+              << "        XOR   XNOR    OR   AND   NOR   NAND\n";
+              
+    for (size_t i = 0; i < inputs.size(); i++) {
+        // Convert input to float
+        Vector_t<float> floatInput(inputs[i].size());
+        for (size_t j = 0; j < inputs[i].size(); j++) {
+            floatInput[j] = static_cast<float>(inputs[i][j]);
+        }
+        
+        Vector_t<float> pred = floatNetwork.Predict(floatInput);
+        std::cout
+            << std::fixed
+            << std::setprecision(0)
+            << floatInput[0]
+            << ','
+            << floatInput[1]
+            << " = "
+            << std::setprecision(3)
+            << pred[0]
+            << "  "
+            << pred[1]
+            << " "
+            << pred[2]
+            << " "
+            << pred[3]
+            << " "
+            << pred[4]
+            << "  "
+            << pred[5]
+            << '\n';
+    }
+    
+    // Create a hub_float network from the trained double network
+    Network_t<hub_float> hubNetwork = Network_t<hub_float>::FromDouble(doubleNetwork);
+    
+    std::cout << "\nResult with hub_float precision:\n"
+              << "        XOR   XNOR    OR   AND   NOR   NAND\n";
+              
+    for (size_t i = 0; i < inputs.size(); i++) {
+        // Convert input to hub_float
+        Vector_t<hub_float> hubInput(inputs[i].size());
+        for (size_t j = 0; j < inputs[i].size(); j++) {
+            hubInput[j] = hub_float(inputs[i][j]);
+        }
+        
+        Vector_t<hub_float> pred = hubNetwork.Predict(hubInput);
+        std::cout
+            << std::fixed
+            << std::setprecision(0)
+            << double(hubInput[0])
+            << ','
+            << double(hubInput[1])
+            << " = "
+            << std::setprecision(3)
+            << double(pred[0])
+            << "  "
+            << double(pred[1])
+            << " "
+            << double(pred[2])
+            << " "
+            << double(pred[3])
+            << " "
+            << double(pred[4])
+            << "  "
+            << double(pred[5])
+            << '\n';
+    }
+
+    // Compare precision differences between the types
+    std::cout << "\n--- Precision Comparison ---\n";
+    std::cout << "Absolute differences between predictions (higher values indicate precision loss):\n\n";
+    
+    std::cout << "double vs float differences:\n";
+    std::cout << "       XOR    XNOR     OR    AND    NOR   NAND   Avg\n";
+    double totalDiffFloat = 0.0;
+    
+    for (size_t i = 0; i < inputs.size(); i++) {
+        const Vector& input = inputs[i];
+        Vector doubleResult = doubleNetwork.Predict(input);
+        
+        // Convert input to float
+        Vector_t<float> floatInput(input.size());
+        for (size_t j = 0; j < input.size(); j++) {
+            floatInput[j] = static_cast<float>(input[j]);
+        }
+        Vector_t<float> floatResult = floatNetwork.Predict(floatInput);
+        
+        // Calculate differences
+        double rowDiff = 0.0;
+        std::cout << std::fixed << std::setprecision(0) 
+                  << input[0] << ',' << input[1] << " = ";
+        
+        for (size_t j = 0; j < doubleResult.size(); j++) {
+            double diff = std::abs(doubleResult[j] - static_cast<double>(floatResult[j]));
+            rowDiff += diff;
+            totalDiffFloat += diff;
+            std::cout << std::scientific << std::setprecision(3) << diff << " ";
+        }
+        
+        double avgRowDiff = rowDiff / doubleResult.size();
+        std::cout << std::scientific << std::setprecision(3) << avgRowDiff << "\n";
+    }
+    
+    double avgDiffFloat = totalDiffFloat / (inputs.size() * outputs[0].size());
+    std::cout << "Average precision loss (float vs double): " 
+              << std::scientific << std::setprecision(6) << avgDiffFloat << "\n\n";
+    
+    std::cout << "double vs hub_float differences:\n";
+    std::cout << "       XOR    XNOR     OR    AND    NOR   NAND   Avg\n";
+    double totalDiffHub = 0.0;
+    
+    for (size_t i = 0; i < inputs.size(); i++) {
+        const Vector& input = inputs[i];
+        Vector doubleResult = doubleNetwork.Predict(input);
+        
+        // Convert input to hub_float
+        Vector_t<hub_float> hubInput(input.size());
+        for (size_t j = 0; j < input.size(); j++) {
+            hubInput[j] = hub_float(input[j]);
+        }
+        Vector_t<hub_float> hubResult = hubNetwork.Predict(hubInput);
+        
+        // Calculate differences
+        double rowDiff = 0.0;
+        std::cout << std::fixed << std::setprecision(0) 
+                  << input[0] << ',' << input[1] << " = ";
+        
+        for (size_t j = 0; j < doubleResult.size(); j++) {
+            double diff = std::abs(doubleResult[j] - static_cast<double>(hubResult[j]));
+            rowDiff += diff;
+            totalDiffHub += diff;
+            std::cout << std::scientific << std::setprecision(3) << diff << " ";
+        }
+        
+        double avgRowDiff = rowDiff / doubleResult.size();
+        std::cout << std::scientific << std::setprecision(3) << avgRowDiff << "\n";
+    }
+    
+    double avgDiffHub = totalDiffHub / (inputs.size() * outputs[0].size());
+    std::cout << "Average precision loss (hub_float vs double): " 
+              << std::scientific << std::setprecision(6) << avgDiffHub << "\n\n";
+    
+    // Compare between float and hub_float
+    std::cout << "float vs hub_float differences:\n";
+    std::cout << "       XOR    XNOR     OR    AND    NOR   NAND   Avg\n";
+    double totalDiffFloatHub = 0.0;
+    
+    for (size_t i = 0; i < inputs.size(); i++) {
+        // Convert input to appropriate types
+        Vector_t<float> floatInput(inputs[i].size());
+        Vector_t<hub_float> hubInput(inputs[i].size());
+        
+        for (size_t j = 0; j < inputs[i].size(); j++) {
+            floatInput[j] = static_cast<float>(inputs[i][j]);
+            hubInput[j] = hub_float(inputs[i][j]);
+        }
+        
+        Vector_t<float> floatResult = floatNetwork.Predict(floatInput);
+        Vector_t<hub_float> hubResult = hubNetwork.Predict(hubInput);
+        
+        // Calculate differences
+        double rowDiff = 0.0;
+        std::cout << std::fixed << std::setprecision(0) 
+                  << double(hubInput[0]) << ',' << double(hubInput[1]) << " = ";
+        
+        for (size_t j = 0; j < floatResult.size(); j++) {
+            double diff = std::abs(static_cast<double>(floatResult[j]) - static_cast<double>(hubResult[j]));
+            rowDiff += diff;
+            totalDiffFloatHub += diff;
+            std::cout << std::scientific << std::setprecision(3) << diff << " ";
+        }
+        
+        double avgRowDiff = rowDiff / floatResult.size();
+        std::cout << std::scientific << std::setprecision(3) << avgRowDiff << "\n";
+    }
+    
+    double avgDiffFloatHub = totalDiffFloatHub / (inputs.size() * outputs[0].size());
+    std::cout << "Average precision loss (float vs hub_float): " 
+              << std::scientific << std::setprecision(6) << avgDiffFloatHub << "\n";
+
+    // Add classification comparison
+    std::cout << "\n--- Classification Comparison ---\n";
+    std::cout << "Checking if networks classify the same despite different numeric precision\n\n";
+    
+    // Arrays to track agreement results
+    bool doubleVsFloatMatch[4] = {true, true, true, true};
+    bool doubleVsHubMatch[4] = {true, true, true, true};
+    bool floatVsHubMatch[4] = {true, true, true, true};
+    
+    // Logical operation names for better readability
+    const std::string opNames[6] = {"XOR", "XNOR", "OR", "AND", "NOR", "NAND"};
+    
+    for (size_t i = 0; i < inputs.size(); i++) {
+        // Get predictions from each network type
+        const Vector& input = inputs[i];
+        Vector doubleResult = doubleNetwork.Predict(input);
+        
+        // Convert input for other network types
+        Vector_t<float> floatInput(input.size());
+        Vector_t<hub_float> hubInput(input.size());
+        for (size_t j = 0; j < input.size(); j++) {
+            floatInput[j] = static_cast<float>(input[j]);
+            hubInput[j] = hub_float(input[j]);
+        }
+        
+        Vector_t<float> floatResult = floatNetwork.Predict(floatInput);
+        Vector_t<hub_float> hubResult = hubNetwork.Predict(hubInput);
+        
+        // For each operation (XOR, XNOR, OR, AND, NOR, NAND)
+        // Check if the binary classification is the same
+        // (using threshold of 0.5 to consider it as 0 or 1)
+        
+        std::cout << "Input " << std::fixed << std::setprecision(0) 
+                  << input[0] << "," << input[1] << ":\n";
+        std::cout << "Operation | Double | Float | Hub_float\n";
+        std::cout << "----------------------------------------\n";
+        
+        for (size_t j = 0; j < doubleResult.size(); j++) {
+            bool doubleClass = doubleResult[j] >= 0.5;
+            bool floatClass = floatResult[j] >= 0.5;
+            bool hubClass = static_cast<double>(hubResult[j]) >= 0.5;
+            
+            // Track if classifications match
+            if (doubleClass != floatClass) doubleVsFloatMatch[i] = false;
+            if (doubleClass != hubClass) doubleVsHubMatch[i] = false;
+            if (floatClass != hubClass) floatVsHubMatch[i] = false;
+            
+            std::cout << std::left << std::setw(10) << opNames[j] << " | "
+                      << std::setw(7) << (doubleClass ? "1" : "0") << " | "
+                      << std::setw(6) << (floatClass ? "1" : "0") << " | "
+                      << std::setw(9) << (hubClass ? "1" : "0") << "\n";
+        }
+        std::cout << "\n";
+    }
+    
+    // Summary of classification agreement
+    std::cout << "Classification Agreement Summary:\n";
+    std::cout << "--------------------------------\n";
+    
+    bool allDoubleVsFloatMatch = true;
+    bool allDoubleVsHubMatch = true;
+    bool allFloatVsHubMatch = true;
+    
+    for (size_t i = 0; i < inputs.size(); i++) {
+        if (!doubleVsFloatMatch[i]) allDoubleVsFloatMatch = false;
+        if (!doubleVsHubMatch[i]) allDoubleVsHubMatch = false;
+        if (!floatVsHubMatch[i]) allFloatVsHubMatch = false;
+    }
+    
+    std::cout << "Double vs Float: " << (allDoubleVsFloatMatch ? "SAME" : "DIFFERENT") << " classifications\n";
+    std::cout << "Double vs Hub_float: " << (allDoubleVsHubMatch ? "SAME" : "DIFFERENT") << " classifications\n";
+    std::cout << "Float vs Hub_float: " << (allFloatVsHubMatch ? "SAME" : "DIFFERENT") << " classifications\n\n";
+
+    // Show the weights of the double network
+    show_weights(doubleNetwork);
+
+    return 0;
+}
+
+template<typename T>
+void show_weights(const Network_t<T>& network) {
+    std::cout << "WeightsHidden:\n" << std::setprecision(6);
+    for (size_t i = 0; i < network.inputCount; i++) {
+        for (size_t j = 0; j < network.hiddenCount; j++) {
+            std::cout << network.weightsHidden[i * network.hiddenCount + j] << ' ';
+        }
+        std::cout << '\n';
+    }
+
+    std::cout << "BiasesHidden:\n";
+    for (auto c : network.biasesHidden) {
+        std::cout << c << ' ';
+    }
+
+    std::cout << "\nWeightsOutput:\n";
+    for (size_t i = 0; i < network.hiddenCount; i++) {
+        for (size_t j = 0; j < network.outputCount; j++) {
+            std::cout << network.weightsOutput[i * network.outputCount + j] << ' ';
+        }
+        std::cout << '\n';
+    }
+
+    std::cout << "BiasesOutput:\n";
+    for (auto c : network.biasesOutput) {
+        std::cout << c << ' ';
+    }
+    std::cout << '\n';
+}
+
+// Original non-template function for backward compatibility 
+void show_weights(const Network& network) {
+    show_weights<double>(network);
+}
