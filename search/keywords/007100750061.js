@@ -1,0 +1,1 @@
+﻿NDSearch.OnPrefixDataLoaded("qua",["Function"],[["quantize",,[[,,,,0,"File:hub_float.cpp:quantize"],["BitFields",,,,0,"File:hub_float.hpp:BitFields.quantize","CClass:BitFields:quantize"]]]]);

@@ -1,0 +1,1 @@
+﻿NDSearch.OnPrefixDataLoaded("max",["Constant","Variable"],[["maxBits",,[["BitFields",,,,0,"File:hub_float.hpp:BitFields.maxBits","CClass:BitFields:maxBits"]]],["maxVal",,[[,,,,1,"File:hub_float.cpp:maxVal"],["BitFields",,,,0,"File:hub_float.hpp:BitFields.maxVal","CClass:BitFields:maxVal"]]]]);

@@ -1,0 +1,1 @@
+﻿NDSearch.OnPrefixDataLoaded("val",["Variable"],[["value",,[["BitFields",,,,0,"File:hub_float.hpp:BitFields.value","CClass:BitFields:value"]]]]);

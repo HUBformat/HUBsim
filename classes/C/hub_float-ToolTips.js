@@ -1,0 +1,1 @@
+﻿NDContentPage.OnToolTipsLoaded({35:"<div class=\"NDToolTip TClass LC\"><div class=\"NDClassPrototype\" id=\"NDClassPrototype35\"><div class=\"CPEntry TClass Current\"><div class=\"CPName\">hub_float</div></div></div><div class=\"TTSummary\">A custom floating-point class with configurable precision and a &quot;hub&quot; bit for consistent rounding.</div></div>"});

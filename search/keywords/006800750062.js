@@ -1,0 +1,1 @@
+﻿NDSearch.OnPrefixDataLoaded("hub",["Constant","Class","File"],[["HUB_BIT",,[["BitFields",,,,0,"File:hub_float.hpp:BitFields.HUB_BIT","CClass:BitFields:HUB_BIT"]]],["hub_float",,[[,,,,1,"File:hub_float.hpp:hub_float","CClass:hub_float"],[,"hub_float.cpp",,,2,"File:hub_float.cpp:hub_float.cpp"],[,"hub_float.hpp",,,2,"File:hub_float.hpp:hub_float.hpp"]]]]);

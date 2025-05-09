@@ -1,0 +1,1 @@
+﻿NDSearch.OnPrefixDataLoaded("shi",["Constant"],[["SHIFT",,[["BitFields",,,,0,"File:hub_float.hpp:BitFields.SHIFT","CClass:BitFields:SHIFT"]]]]);
