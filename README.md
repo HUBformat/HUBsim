@@ -59,5 +59,10 @@ The implementation uses a double as the internal storage format, with bit manipu
 ## References
 
 For more information about the HUB format, refer to:
+
 - J. Hormigo and J. Villalba, "New formats for computing with real-numbers under round-to-nearest," in IEEE Transactions on Computers
 - J. Hormigo and J. Villalba, "Measuring Improvement When Using HUB Formats to Implement Floating-Point Systems under Round-to-Nearest," in IEEE Transactions on Very Large Scale Integration (VLSI) Systems
+
+![Logos of the Spanish Government, European Union NextGenerationEU, Spanish Recovery and Resilience Plans, and Spanish State Research Agency.](https://github.com/HUBformat/.github/raw/main/profile/res/MICIU+NextG+PRTR+AEI.svg)&nbsp;
+
+
