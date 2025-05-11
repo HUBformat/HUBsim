@@ -65,6 +65,15 @@ public:
 
     /*
         Function: hub_float
+        Construct from int.
+
+        Parameters:
+        i - The int value to convert.
+    */
+    hub_float(int i);         // Construct from int.
+
+    /*
+        Function: hub_float
         Construct a hub_float from a raw binary representation.
 
         Parameters:
@@ -249,6 +258,11 @@ public:
    */
     friend std::ostream& operator<<(std::ostream &os, const hub_float &hf);
 
+   /*
+      Constant: lowestVal
+      Lowest representable negative value in hub_float format as a double.
+   */
+    static const double lowestVal;
 
 private:
     /*
@@ -424,12 +438,6 @@ private:
        Minimum representable positive value in hub_float format as a double.
     */    
     static const double minVal;
-
-   /*
-      Constant: lowestVal
-      Lowest representable negative value in hub_float format as a double.
-   */
-    static const double lowestVal;
 
 };
 

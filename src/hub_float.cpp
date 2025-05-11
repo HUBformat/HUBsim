@@ -118,6 +118,15 @@ hub_float::hub_float(double d) {
 
 /*
     Function: hub_float
+    Constructor that converts an int to a hub_float.
+
+    Parameters:
+        i - The int value to convert.
+*/
+hub_float::hub_float(int i) : hub_float(static_cast<double>(i)) {}
+
+/*
+    Function: hub_float
     Constructor that creates a hub_float from a raw binary representation.
 
     Parameters:
