@@ -11,12 +11,13 @@
 
 namespace Utils {
     void clearScreen();
-    std::string generateFilename(const std::string& opName, bool isSampled, bool isSpecialCase = false);
+    std::string generateFilename(const std::string& opName, bool isSampled, bool isSpecialCase = false, bool numericFile = false);
     uint64_t getMaxValue();
     std::ofstream openOutputFile(const std::string& filename);
     void showProgress(uint64_t current, uint64_t total, const std::string& taskName = "");
     void displayCalculation(const hub_float& x, const hub_float& y, const hub_float& result);
     void displayCalculation(const hub_float& x, const hub_float& result);
+    void displayCalculation(const hub_float& x, const hub_float& y, const hub_float& z, const hub_float& result);
 }
 
 #endif // UTILS_HPP

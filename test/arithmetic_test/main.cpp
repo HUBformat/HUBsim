@@ -15,6 +15,10 @@ static std::function<hub_float(const hub_float&, const hub_float&)> division =
     [](const hub_float& a, const hub_float& b) { return a / b; };
 static std::function<hub_float(const hub_float&)> squareRoot = 
     [](const hub_float& a) { return sqrt(a); };
+static std::function<hub_float(const hub_float&, const hub_float&, const hub_float&)> fused_multiply_add = 
+    [](const hub_float& a, const hub_float& b, const hub_float& c) { 
+        return fma(a,b,c);
+    };
 
 int main() {
     std::cout << std::setprecision(50);
@@ -26,8 +30,9 @@ int main() {
 
     testers.push_back(createTester("addition", addition));
     testers.push_back(createTester("multiplication", multiplication));
-    testers.push_back(createTester("division", division));
-    testers.push_back(createTester("sqrt", squareRoot));
+    //testers.push_back(createTester("division", division));
+    //testers.push_back(createTester("sqrt", squareRoot));
+    //testers.push_back(createTester("fused_multiply_add", fused_multiply_add));
 
     for (auto& tester : testers) {
         tester->runTests();

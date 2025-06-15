@@ -6,7 +6,7 @@
 #include <memory>
 #include <random>
 #include <fstream>
-#include <functional>  // Added for std::function
+#include <functional>
 #include "hub_float.hpp"
 #include "test_config.hpp"
 #include "utils.hpp"
@@ -28,7 +28,14 @@ public:
     const std::string& getName() const;
 };
 
-template<typename Operation, bool IsBinary>
+// Enum to define operation type
+enum class OpType {
+    UNARY,
+    BINARY,
+    TERNARY
+};
+
+template<typename Operation, OpType Type>
 class OperationTesterImpl : public OperationTester {
 private:
     Operation operation_;

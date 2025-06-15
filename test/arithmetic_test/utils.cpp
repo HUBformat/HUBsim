@@ -7,7 +7,7 @@ namespace Utils {
         std::cout << "\033[2J\033[H" << std::flush;
     }
 
-    std::string generateFilename(const std::string& opName, bool isSampled, bool isSpecialCase) {
+    std::string generateFilename(const std::string& opName, bool isSampled, bool isSpecialCase, bool numericFile) {
         std::ostringstream filename;
         filename << "hub_float_" << opName 
                  << "_exp" << EXP_BITS 
@@ -18,6 +18,11 @@ namespace Utils {
         } else if (isSampled) {
             filename << "_sampled";
         }
+
+        if (numericFile) {
+            filename << "_numeric"; 
+        }
+
         filename << ".csv";
         return filename.str();
     }
@@ -73,6 +78,13 @@ namespace Utils {
         if (!TestConfig::SHOW_DETAILED_OUTPUT) return;
         std::cout << "X: " << x
                   << " Z: " << result.toHexString() << " (" << result << ")\n"
+                  << "Binary: " << result.toBinaryString() << "\n";
+    }
+    
+    void displayCalculation(const hub_float& x, const hub_float& y, const hub_float& z, const hub_float& result) {
+        if (!TestConfig::SHOW_DETAILED_OUTPUT) return;
+        std::cout << "X: " << x << " Y: " << y << " Z: " << z
+                  << " R: " << result.toHexString() << " (" << result << ")\n"
                   << "Binary: " << result.toBinaryString() << "\n";
     }
 }
