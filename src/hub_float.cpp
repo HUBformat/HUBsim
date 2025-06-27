@@ -256,7 +256,24 @@ inline double hub_float::apply_hub_grid(double d) {
 
 
     std::memcpy(&bits, &d, sizeof(d));
-    bits = (bits & ~((1ULL << (SHIFT-1)) - 1)) | HUB_BIT;
+
+    #if UNBIASED_ROUNDING
+        // Check if all the bits we are truncating are zeros
+        bool all_truncated_bits_zero = ((bits & ((1ULL << (SHIFT-1)) - 1)) == 0);
+        
+        if (all_truncated_bits_zero) {
+            // std::cout << "Unbiased rounding enabled" << std::endl;
+            uint64_t clear_mask = ~(1ULL << SHIFT);
+            bits = (bits & clear_mask) | HUB_BIT;
+        } else {
+            // Standard behavior - set HUB_BIT and clear all lower bits
+            bits = (bits & ~((1ULL << (SHIFT-1)) - 1)) | HUB_BIT;
+        }
+    #else
+        // Standard behavior - set HUB_BIT and clear all lower bits
+        bits = (bits & ~((1ULL << (SHIFT-1)) - 1)) | HUB_BIT;
+    #endif
+
     std::memcpy(&d, &bits, sizeof(d));
 
     if (d > maxVal){
@@ -267,6 +284,7 @@ inline double hub_float::apply_hub_grid(double d) {
     
     return d;
 }
+
 
 /*
     Function: handle_specials
