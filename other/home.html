@@ -39,6 +39,7 @@ single precision parameters (8-bit exponent, 23-bit mantissa).</p>
 <ul>
 <li><strong>Configurable Precision</strong></li>
 <li><strong>Standard Arithmetic Operations</strong></li>
+<li><strong>FMA Emulation</strong></li>
 <li><strong>Special Value Handling</strong></li>
 <li><strong>Conversion Support</strong></li>
 <li><strong>Diagnostic Functions</strong></li>
@@ -87,6 +88,8 @@ implementation aspects include:</p>
 subnormals</li>
 <li>Proper extraction of bit fields for string representations</li>
 <li>Support for all basic arithmetic operations</li>
+<li>Detection and correction of double rounding in float32 FMA emulation
+(EXP_BITS=8, MANT_BITS=23) for accurate single-precision results</li>
 </ul>
 <h2 class="CHeading" id="references">References</h2>
 <p>For more information about the HUB format, refer to:</p>
