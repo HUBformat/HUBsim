@@ -246,6 +246,21 @@ public:
     friend hub_float sqrt(const hub_float& x);
 
    /*
+       Friend Function: fma
+       Fused multiply-add function for hub_float.
+       Computes (a*b + c) with only one rounding operation using hardware FMA.
+
+       Parameters:
+       a - The first hub_float to multiply.
+       b - The second hub_float to multiply.
+       c - The hub_float to add to the product.
+
+       Returns:
+       The result of (a*b + c) as a hub_float.
+   */
+    friend hub_float fma(const hub_float& a, const hub_float& b, const hub_float& c);
+
+   /*
        Friend Function: operator<<
        Stream insertion operator for hub_float.
 

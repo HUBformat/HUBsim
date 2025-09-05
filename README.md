@@ -12,6 +12,7 @@ This library provides a C++ implementation of the HUB format with configurable e
 
 - **Configurable Precision**
 - **Standard Arithmetic Operations**
+- **FMA Emulation**
 - **Special Value Handling**
 - **Conversion Support**
 - **Diagnostic Functions**
@@ -55,6 +56,7 @@ The implementation uses a double as the internal storage format, with bit manipu
 - Special case handling for values like infinity, NaN, and subnormals
 - Proper extraction of bit fields for string representations
 - Support for all basic arithmetic operations
+- Detection and correction of double rounding in float32 FMA emulation (EXP_BITS=8, MANT_BITS=23) for accurate single-precision results
 
 ## References
 

@@ -555,6 +555,111 @@ hub_float sqrt(const hub_float &x) {
     return hub_float::quantize(std::sqrt(static_cast<double>(x)));
 }
 
+/*
+   Function: fma
+   Fused multiply-add function for hub_float.
+   Computes (a*b + c) with only one rounding operation using hardware FMA.
+
+   Parameters:
+       a - The first hub_float to multiply.
+       b - The second hub_float to multiply.
+       c - The hub_float to add to the product.
+
+   Returns:
+       The result of (a*b + c) as a hub_float.
+
+   Notes:
+       When emulating float32 (EXP_BITS=8, MANT_BITS=23), hardware FMA operates in double precision,
+       which can lead to double rounding.
+       This function includes special logic to detect and correct such cases by adjusting the result
+       by one ULP when necessary, ensuring accurate single-precision rounding.
+*/
+hub_float fma(const hub_float& a, const hub_float& b, const hub_float& c) {
+    // Extract the underlying double-precision values from the hub_float objects.
+    double val_a = static_cast<double>(a);
+    double val_b = static_cast<double>(b);
+    double val_c = static_cast<double>(c);
+
+    // Raw fma
+    double sumDouble = std::fma(val_a, val_b, val_c);
+
+    // Special rounding logic for avoiding double rounding when emulating float32
+    #if (EXP_BITS == 8) && (MANT_BITS == 23)
+        // Check if all bits after HUB_BIT are 0
+        uint64_t sum_bits;
+        std::memcpy(&sum_bits, &sumDouble, sizeof(sum_bits));
+
+        // Extract the double's mantissa (lower 52 bits)
+        uint64_t mantissa = sum_bits & ((1ULL << 52) - 1);
+
+        // Create mask for all bits after HUB_BIT
+        uint64_t mask_relevant_bits = ((1ULL << (hub_float::SHIFT - 1)) - 1);
+
+        // Check if all bits after HUB_BIT are zero
+        bool relevant_bits_after_hub_zero = (mantissa & mask_relevant_bits) == 0;
+
+        // Need to substract 1 ULP if true
+        bool needs_correction = false;
+
+        if (relevant_bits_after_hub_zero) {
+            // Compute product separately and analyze fields
+            double intermediate_product = val_a * val_b;
+            hub_float temp_product(intermediate_product);
+            auto c_fields = c.extractBitFields();
+            auto product_fields = temp_product.extractBitFields();
+
+            if (c_fields.custom_exp > product_fields.custom_exp) {
+                // Case where sum is greater than product (product should shift to exponent of sum)
+                uint64_t prod_bits;
+                std::memcpy(&prod_bits, &intermediate_product, sizeof(prod_bits));
+                uint64_t prod_mantissa = prod_bits & ((1ULL << 52) - 1);
+                bool bit_24_set = (prod_mantissa & (1ULL << 24)) != 0;
+                if (bit_24_set) {
+                    needs_correction = true;
+                }
+            } else if (c_fields.custom_exp < product_fields.custom_exp) {
+                int shift_amount = product_fields.custom_exp - c_fields.custom_exp;
+                uint64_t c_bits;
+                std::memcpy(&c_bits, &val_c, sizeof(c_bits));
+                uint64_t c_mantissa = c_bits & ((1ULL << 52) - 1);
+
+                bool c_contributes_to_last_3_bits = false;
+                if (shift_amount <= 52) {
+                    // Mask for LSBs that will be shifted out
+                    uint64_t mask_lost_bits = (1ULL << shift_amount) - 1;
+
+                    if ((c_mantissa & mask_lost_bits) != 0) {
+                        c_contributes_to_last_3_bits = true;
+                    }
+                } else {
+                    // Entire mantissa shifted out
+                    if (c_mantissa != 0) {
+                        c_contributes_to_last_3_bits = true;
+                    }
+                }
+
+                if (c_contributes_to_last_3_bits) {
+                    needs_correction = true;
+                }
+            }
+        }
+
+        // If correction is needed, subtract one ULP
+        if (needs_correction) {
+            uint64_t sbits;
+            std::memcpy(&sbits, &sumDouble, sizeof(sbits));
+            uint64_t expBits = (sbits >> 52) & 0x7FF;
+            double ulp_val;
+            uint64_t ulpBits = (expBits << 52) | (1ULL << 29);
+            std::memcpy(&ulp_val, &ulpBits, sizeof(ulp_val));
+
+            sumDouble -= ulp_val;
+        }
+    #endif // (EXP_BITS == 8) && (MANT_BITS == 23)
+
+    hub_float result = hub_float::quantize(sumDouble);
+    return result;
+}
 
 /*
    Function: operator"" _hb
