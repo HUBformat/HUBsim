@@ -512,10 +512,14 @@ std::string hub_float::toHexString() const {
     ((fields.custom_exp & ((1 << EXP_BITS)-1)) << MANT_BITS) |
     (fields.custom_frac & ((1 << MANT_BITS)-1));
 
+    // Mask to only keep the bits we need to avoid sign extension issues
+    const uint64_t mask = (1ULL << total_bits) - 1;
+    const uint64_t masked_packed = packed & mask;
+
     // Format hex string
     std::ostringstream oss;
     oss << "0x" << std::hex << std::uppercase 
-        << std::setw(hex_digits) << std::setfill('0') << packed;
+        << std::setw(hex_digits) << std::setfill('0') << masked_packed;
     
     return oss.str();
 }
