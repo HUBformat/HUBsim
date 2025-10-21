@@ -48,40 +48,6 @@ int main() {
 - **Hardware Efficiency**: Eliminates carry propagation during rounding operations
 - **Same Storage Requirements**: Requires the same storage space as conventional formats with equivalent precision
 
-## Python Bindings
-
-The library includes Python bindings that allow you to use `hub_float` from Python:
-
-### Building Python Extension
-
-```bash
-python3 setup.py build_ext --inplace
-```
-
-### Python Usage
-
-```python
-import hub_float as hf
-
-# Create hub_float numbers
-a = hf.HubFloat(3.14159)
-b = hf.HubFloat(2.71828)
-
-# Basic arithmetic works with Python floats too!
-result = a + b * 2.0
-print(f"Result: {result}")
-
-# Special functions
-sqrt_a = hf.sqrt(a)
-fused = hf.fma(a, b, 1.0)
-
-# Inspect internal representation
-print(f"Binary: {a.to_binary_string()}")
-print(f"Hex: {a.to_hex_string()}")
-```
-
-See `python_bindings/README.md` for complete documentation.
-
 ## Implementation Details
 
 The implementation uses a double as the internal storage format, with bit manipulation to ensure values conform to the HUB grid. Key implementation aspects include:

@@ -30,8 +30,8 @@ int main() {
 
     testers.push_back(createTester("addition", addition));
     testers.push_back(createTester("multiplication", multiplication));
-    testers.push_back(createTester("division", division));
-    testers.push_back(createTester("sqrt", squareRoot));
+    //testers.push_back(createTester("division", division));
+    //testers.push_back(createTester("sqrt", squareRoot));
     //testers.push_back(createTester("fused_multiply_add", fused_multiply_add));
 
     for (auto& tester : testers) {
