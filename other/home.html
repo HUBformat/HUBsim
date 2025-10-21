@@ -77,6 +77,38 @@ during rounding operations</li>
 <li><strong>Same Storage Requirements</strong>: Requires the same
 storage space as conventional formats with equivalent precision</li>
 </ul>
+<h2 class="CHeading" id="python-bindings">Python Bindings</h2>
+<p>The library includes Python bindings that allow you to use
+<code>hub_float</code> from Python:</p>
+<h3 class="CHeading" id="building-python-extension">Building Python
+Extension</h3>
+<div class="CTopic">
+<div class="sourceCode" id="cb2"><pre
+class="sourceCode bash CCode"><code class="sourceCode bash"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="ex">python3</span> setup.py build_ext <span class="at">--inplace</span></span></code></pre></div>
+</div>
+<h3 class="CHeading" id="python-usage">Python Usage</h3>
+<div class="CTopic">
+<div class="sourceCode" id="cb3"><pre
+class="sourceCode python CCode"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> hub_float <span class="im">as</span> hf</span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a><span class="co"># Create hub_float numbers</span></span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a>a <span class="op">=</span> hf.HubFloat(<span class="fl">3.14159</span>)</span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a>b <span class="op">=</span> hf.HubFloat(<span class="fl">2.71828</span>)</span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a><span class="co"># Basic arithmetic works with Python floats too!</span></span>
+<span id="cb3-8"><a href="#cb3-8" aria-hidden="true" tabindex="-1"></a>result <span class="op">=</span> a <span class="op">+</span> b <span class="op">*</span> <span class="fl">2.0</span></span>
+<span id="cb3-9"><a href="#cb3-9" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f&quot;Result: </span><span class="sc">{</span>result<span class="sc">}</span><span class="ss">&quot;</span>)</span>
+<span id="cb3-10"><a href="#cb3-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-11"><a href="#cb3-11" aria-hidden="true" tabindex="-1"></a><span class="co"># Special functions</span></span>
+<span id="cb3-12"><a href="#cb3-12" aria-hidden="true" tabindex="-1"></a>sqrt_a <span class="op">=</span> hf.sqrt(a)</span>
+<span id="cb3-13"><a href="#cb3-13" aria-hidden="true" tabindex="-1"></a>fused <span class="op">=</span> hf.fma(a, b, <span class="fl">1.0</span>)</span>
+<span id="cb3-14"><a href="#cb3-14" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-15"><a href="#cb3-15" aria-hidden="true" tabindex="-1"></a><span class="co"># Inspect internal representation</span></span>
+<span id="cb3-16"><a href="#cb3-16" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f&quot;Binary: </span><span class="sc">{</span>a<span class="sc">.</span>to_binary_string()<span class="sc">}</span><span class="ss">&quot;</span>)</span>
+<span id="cb3-17"><a href="#cb3-17" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f&quot;Hex: </span><span class="sc">{</span>a<span class="sc">.</span>to_hex_string()<span class="sc">}</span><span class="ss">&quot;</span>)</span></code></pre></div>
+</div>
+<p>See <code>python_bindings/README.md</code> for complete
+documentation.</p>
 <h2 class="CHeading" id="implementation-details">Implementation
 Details</h2>
 <p>The implementation uses a double as the internal storage format, with
