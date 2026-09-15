@@ -66,6 +66,68 @@ class="sourceCode cpp CCode"><code class="sourceCode cpp"><span id="cb1-1"><a hr
 <span id="cb1-16"><a href="#cb1-16" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> <span class="dv">0</span><span class="op">;</span></span>
 <span id="cb1-17"><a href="#cb1-17" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
 </div>
+<h2 class="CHeading" id="tests-and-benchmarks">Tests and benchmarks</h2>
+<p><code>make</code> builds every program under <code>test/</code> into
+<code>bin/</code>. The format is fixed at compile time:</p>
+<div class="CTopic">
+<div class="sourceCode" id="cb2"><pre
+class="sourceCode bash CCode"><code class="sourceCode bash"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="fu">make</span>                                                  <span class="co"># EXP_BITS=8, MANT_BITS=23 (FP32-equivalent)</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="fu">make</span> clean <span class="kw">&amp;&amp;</span> <span class="fu">make</span> EXP_BITS=5 MANT_BITS=10            <span class="co"># any other width</span></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a><span class="fu">make</span> clean <span class="kw">&amp;&amp;</span> <span class="fu">make</span> CXX=<span class="st">&quot;g++ -DUNBIASED_ROUNDING=1&quot;</span>    <span class="co"># unbiased rounding of ties</span></span></code></pre></div>
+</div>
+<table>
+<colgroup>
+<col style="width: 33%" />
+<col style="width: 33%" />
+<col style="width: 33%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>Program</th>
+<th>What it does</th>
+<th>Result, FP32-equivalent format</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><a
+href="test/arithmetic_test/README.md"><code>test/arithmetic_test</code></a></td>
+<td>Generates testbenches (hex CSV) for addition, multiplication,
+division, square root and FMA: exhaustive up to 9-bit formats (6-bit for
+FMA), sampled above that</td>
+<td>—</td>
+</tr>
+<tr class="even">
+<td><a href="test/fft/README.md"><code>test/fft</code></a></td>
+<td>FFT from 128 to 4096 points, <code>hub_float</code> and
+<code>float</code> against a <code>double</code> reference</td>
+<td>Within 1.1 dB of <code>float</code>; 0.6 dB ahead with unbiased
+rounding</td>
+</tr>
+<tr class="odd">
+<td><a href="test/horner/README.md"><code>test/horner</code></a></td>
+<td>Degree-10 polynomial evaluation, <code>hub_float</code> against
+<code>float</code></td>
+<td>Error ratio 1.0024 ± 0.0118 over ten seeds</td>
+</tr>
+<tr class="even">
+<td><a href="test/neural/README.md"><code>test/neural</code></a></td>
+<td>MNIST classifier trained in <code>double</code>, evaluated in
+<code>half</code> and <code>hub_float</code></td>
+<td>Same test accuracy as <code>double</code> (86.3 %); matches
+<code>half</code> at equal width</td>
+</tr>
+<tr class="odd">
+<td><a
+href="test/tblas_lapack/README.md"><code>test/tblas_lapack</code></a></td>
+<td>LU solve with the LAPACK-derived solver, <code>hub_float</code>
+against <code>float</code></td>
+<td>Within 0.4 dB of <code>float</code> from 10×10 to 100×100</td>
+</tr>
+</tbody>
+</table>
+<p>Each program’s README gives the full results and how to reproduce
+them.</p>
 <h2 class="CHeading" id="key-characteristics">Key Characteristics</h2>
 <ul>
 <li><strong>Implicit Least Significant Bit (ILSB)</strong>: In HUB
