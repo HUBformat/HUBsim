@@ -13,10 +13,13 @@ The code is designed to compare numerical accuracy, training convergence, and in
 
 ## Files
 
-- `neural.hpp`: Header file with templated class and function declarations for neural networks
+- `neural.h`, `neural_impl.hpp`: Templated class and function declarations for neural networks
 - `neural.cpp`: Implementation of neural network algorithms
-- `main.cpp`: Benchmark program that compares precision between `float` and `hub_float` types
-- `datasets/`: Directory containing sample datasets for training and testing
+- `mnist_loader.h`: Reader for the MNIST IDX files
+- `half.hpp`: Half-precision (binary16) type used as a comparison format
+- `main.cpp`: Benchmark program that compares `double`, `half` and `hub_float`
+
+The MNIST data files are not included in the repository; see Usage.
 
 ## Neural Network Implementation
 
@@ -33,45 +36,59 @@ This neural network implementation is based on code from the GitHub repository [
 ## Benchmark
 
 The benchmark program:
-- Tests networks of various sizes and architectures
-- Runs multiple training sessions with identical initialization
-- Compares `hub_float` against standard `float` using `double` as reference
-- Analyzes differences in:
-  - Training convergence rate
-  - Final accuracy
-  - Numerical stability
-  - Forward and backward pass precision
-- Calculates error statistics (average, maximum, minimum errors)
+- Trains a 784–128–10 network in `double` on 10 000 MNIST training images (5 epochs, batch 100, learning rate 0.1, fixed shuffle seed)
+- Converts the trained weights to `half` and to `hub_float` and evaluates all three types on 1000 test images
+- Reports the test-set accuracy of each type, and the RMSE of the `half` and `hub_float` outputs against the `double` network, both before and after the output sigmoid
 
 ## Usage
 
 ### Running the Benchmark
 
-Compile and run the main program:
+Build from the repository root with `make`, then run the binary from a directory containing the MNIST files:
 
 ```bash
-g++ -o neural_benchmark main.cpp neural.cpp -I../../src -std=c++11
-./neural_benchmark
+make
+cd /path/to/mnist
+/path/to/HUBsim/bin/neural
 ```
+
+The program reads `train-images-idx3-ubyte`, `train-labels-idx1-ubyte`, `t10k-images-idx3-ubyte` and `t10k-labels-idx1-ubyte` (uncompressed) from the current directory.
+They are not distributed with the repository.
 
 ### Output
 
-The program produces:
-1. Console output with summarized results
-2. A CSV file containing detailed results for each training session
-3. Optional visualizations of training convergence and error distribution
+Console output only: per-epoch training loss and accuracy, then the accuracy of each type and the output RMSE of `half` and `hub_float` against `double`.
 
-### CSV File Format
+## Results
 
-The generated CSV includes:
-- Network architecture
-- Type (`float` or `hub_float`)
-- Training epoch
-- Training loss
-- Validation accuracy
-- Test accuracy
-- Weight statistics (mean, variance)
-- Computation time
+
+`half` is a 16-bit format, so it is compared against `hub_float` built at the same width (`make clean && make EXP_BITS=5 MANT_BITS=10`):
+
+```
+Double precision accuracy: 86.3%
+Half precision accuracy: 86.2%
+hub_float precision accuracy: 86.2%
+Raw output RMSE (half-Double): 1.1211e-02
+Raw output RMSE (hub_float-Double): 1.1179e-02
+Sigmoid output RMSE (half-Double): 4.1714e-04
+Sigmoid output RMSE (hub_float-Double): 4.3506e-04
+```
+
+At equal width the two are indistinguishable: identical accuracy, raw output RMSE within 0.3 %.
+
+With the default FP32-equivalent configuration (`EXP_BITS=8`, `MANT_BITS=23`), `hub_float` is compared against the `double` reference:
+
+```
+Double precision accuracy: 86.3%
+hub_float precision accuracy: 86.3%
+Raw output RMSE (hub_float-Double): 1.3820e-06
+Sigmoid output RMSE (hub_float-Double): 5.3717e-08
+```
+
+The classification decision is unchanged by the substitution.
+Building with unbiased rounding (`make clean && make CXX="g++ -DUNBIASED_ROUNDING=1"`) gives the same accuracy (86.3 %) and a raw output RMSE of 1.3740e-06.
+
+The comparison `half` against the 32-bit `hub_float` build would not be meaningful — it credits `hub_float` with 13 extra mantissa bits — and the benchmark has no `float` network to compare the 32-bit build against.
 
 ## Using the Neural Network Classes
 

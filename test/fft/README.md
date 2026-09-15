@@ -46,12 +46,15 @@ The benchmark program:
 
 ### Running the Benchmark
 
-Compile and run the main program:
+Build from the repository root with `make`; the binary lands in `bin/`:
 
 ```bash
-g++ -o fft_benchmark main.cpp fft.cpp -I../../src -std=c++11
-./fft_benchmark
+make
+./bin/fft
 ```
+
+The Makefile links `src/hub_float.cpp` and passes the flags the library relies on (`-std=c++17 -frounding-math -mno-fma`).
+To try a different format, rebuild with, for example, `make clean && make EXP_BITS=5 MANT_BITS=10`.
 
 ### Output
 
@@ -73,6 +76,37 @@ The generated CSV includes:
 - Relative error
 - Variance
 - SNR (dB)
+
+## Results
+
+Console output, real part (the imaginary part tracks it to within 0.06 dB):
+
+```
+Size	Type		Part	Avg Error	Max Error	Min Error	Rel Error	SNR (dB)
+128	float		real	0.0000003515	0.0000031173	0.0000000000	0.0000009478	140.3127553095
+128	hub_float	real	0.0000003704	0.0000029078	0.0000000000	0.0000006301	139.7742292342
+1024	float		real	0.0000012255	0.0000098504	0.0000000000	0.0000009800	138.4717068025
+1024	hub_float	real	0.0000013569	0.0000109752	0.0000000000	0.0000009379	137.5100506402
+4096	float		real	0.0000027417	0.0000244645	0.0000000000	0.0000010965	137.5282686543
+4096	hub_float	real	0.0000030816	0.0000284427	0.0000000000	0.0000009860	136.4327047351
+```
+
+SNR against the `double` reference, at all six sizes (error bars are ±1 standard deviation over the 1000 trials):
+
+![FFT SNR against the double reference](fft_snr.png)
+
+The same values at three of the sizes:
+
+| N | `float` | `hub_float` | `hub_float`, `-DUNBIASED_ROUNDING=1` |
+|---:|---:|---:|---:|
+| 128 | 140.31 dB | 139.77 dB | 141.05 dB |
+| 1024 | 138.47 dB | 137.51 dB | 139.02 dB |
+| 4096 | 137.53 dB | 136.43 dB | 138.09 dB |
+
+`hub_float` stays within about 1.1 dB of `float` at every size, and with unbiased rounding it is about 0.6 dB ahead.
+The deviation grows smoothly with transform size; there is no size at which `hub_float` behaves anomalously.
+The last column is built with `make clean && make CXX="g++ -DUNBIASED_ROUNDING=1"`.
+That option changes only the direction in which ties are rounded, never the size of an individual rounding error; across the transform it is worth 1.3–1.7 dB.
 
 ## Using the FFT Functions
 

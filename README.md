@@ -41,6 +41,26 @@ int main() {
 }
 ```
 
+## Tests and benchmarks
+
+`make` builds every program under `test/` into `bin/`. The format is fixed at compile time:
+
+```bash
+make                                                  # EXP_BITS=8, MANT_BITS=23 (FP32-equivalent)
+make clean && make EXP_BITS=5 MANT_BITS=10            # any other width
+make clean && make CXX="g++ -DUNBIASED_ROUNDING=1"    # unbiased rounding of ties
+```
+
+| Program | What it does | Result, FP32-equivalent format |
+|---|---|---|
+| [`test/arithmetic_test`](test/arithmetic_test/README.md) | Generates testbenches (hex CSV) for addition, multiplication, division, square root and FMA: exhaustive up to 9-bit formats (6-bit for FMA), sampled above that | — |
+| [`test/fft`](test/fft/README.md) | FFT from 128 to 4096 points, `hub_float` and `float` against a `double` reference | Within 1.1 dB of `float`; 0.6 dB ahead with unbiased rounding |
+| [`test/horner`](test/horner/README.md) | Degree-10 polynomial evaluation, `hub_float` against `float` | Error ratio 1.0024 ± 0.0118 over ten seeds |
+| [`test/neural`](test/neural/README.md) | MNIST classifier trained in `double`, evaluated in `half` and `hub_float` | Same test accuracy as `double` (86.3 %); matches `half` at equal width |
+| [`test/tblas_lapack`](test/tblas_lapack/README.md) | LU solve with the LAPACK-derived solver, `hub_float` against `float` | Within 0.4 dB of `float` from 10×10 to 100×100 |
+
+Each program's README gives the full results and how to reproduce them.
+
 ## Key Characteristics
 
 - **Implicit Least Significant Bit (ILSB)**: In HUB format, the least significant bit is always 1 and is implicit
