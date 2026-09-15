@@ -86,10 +86,12 @@ hub_float::hub_float(double d) {
 
     if (d > maxVal){
         value = std::numeric_limits<double>::infinity();
+        return;
     } else if (d < minVal){
         value = -std::numeric_limits<double>::infinity();
+        return;
     }
-    
+
 
     // Check if 'd' is already on our custom grid
     // We'll do that by re-applying the mask logic and comparing bits.
@@ -107,12 +109,7 @@ hub_float::hub_float(double d) {
     } else {
         // Not on the grid, quantize by converting to float (round to nearest)
         // then re-running through quantize
-        float f = static_cast<float>(d);
-        if (std::fpclassify(f) == FP_NORMAL) {
-            value = quantize(static_cast<double>(f));
-        } else {
-            value = static_cast<double>(f);
-        }
+        value = quantize(d);
     }
 }
 
@@ -259,7 +256,7 @@ inline double hub_float::apply_hub_grid(double d) {
 
     #if UNBIASED_ROUNDING
         // Check if all the bits we are truncating are zeros
-        bool all_truncated_bits_zero = ((bits & ((1ULL << (SHIFT-1)) - 1)) == 0);
+        bool all_truncated_bits_zero = ((bits & ((1ULL << SHIFT) - 1)) == 0);
         
         if (all_truncated_bits_zero) {
             // std::cout << "Unbiased rounding enabled" << std::endl;
