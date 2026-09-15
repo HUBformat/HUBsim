@@ -4,6 +4,7 @@
 #include <random>
 #include <ctime>
 #include <iomanip>
+#include <string>
 #include "hub_float.hpp"  // Include the hub_float class
 
 // Standard Horner's rule implementation using a single template parameter
@@ -32,11 +33,14 @@ std::vector<T> generateRandomCoefficients(int count, double min, double max) {
     return coefficients;
 }
 
-int main() {
-    // Seed the random number generator
-    std::mt19937 gen(static_cast<unsigned int>(time(nullptr)));
+int main(int argc, char** argv) {
+    // Seed the random number generator. Fixed default so runs are reproducible;
+    // pass a seed on the command line to obtain independent repetitions.
+    const unsigned int seed = (argc > 1) ? static_cast<unsigned int>(std::stoul(argv[1])) : 42u;
+    std::mt19937 gen(seed);
     
     std::cout << "=== Testing Horner's Rule with Random Coefficients ===" << std::endl;
+    std::cout << "Seed: " << seed << std::endl;
     
     // Set parameters for random generation
     const int degree = 10;           // polynomial degree

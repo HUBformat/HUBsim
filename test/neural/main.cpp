@@ -297,7 +297,7 @@ int main() {
     // Create indices for shuffling
     std::vector<size_t> indices(train_data.images.size());
     std::iota(indices.begin(), indices.end(), 0);
-    std::default_random_engine rng(std::chrono::system_clock::now().time_since_epoch().count());
+    std::default_random_engine rng(42);  // fixed seed: training order must be reproducible
     
     // Training loop
     for (int epoch = 0; epoch < EPOCHS; ++epoch) {

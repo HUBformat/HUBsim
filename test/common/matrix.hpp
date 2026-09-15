@@ -23,12 +23,13 @@ public:
     size_t getRows() const { return rows; }
     size_t getCols() const { return cols; }
     
-    // Fill with random values
-    void randomize(double min, double max) {
-        std::random_device rd;
-        std::mt19937 gen(42);
+    // Fill with random values. The seed is a parameter: constructing the
+    // generator with a constant here made every call produce the same matrix,
+    // so repeated "trials" all solved an identical system.
+    void randomize(double min, double max, unsigned int seed = 42) {
+        std::mt19937 gen(seed);
         std::uniform_real_distribution<double> dist(min, max);
-        
+
         for (size_t i = 0; i < rows; ++i) {
             for (size_t j = 0; j < cols; ++j) {
                 (*this)(i, j) = static_cast<T>(dist(gen));
