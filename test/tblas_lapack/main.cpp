@@ -11,6 +11,10 @@
 #include "../common/io_utils.hpp"    // Include IO utils header
 #include "../common/matrix.hpp"      // Include matrix header
 
+#ifndef VERBOSE_SOLVE
+#define VERBOSE_SOLVE 0
+#endif
+
 // Function template for printing a matrix
 template<typename T>
 void printMatrix(const T* A, size_t m, size_t n, size_t lda, const char* name) {
@@ -135,11 +139,16 @@ bool is_snr_stable(const std::vector<double>& snr_values, double threshold = 0.5
 
 // Generate random matrix and vector for testing
 template<typename T>
-std::pair<Matrix<T>, std::vector<T>> generate_random_system(size_t size, double min_val = -100.0, double max_val = 100.0) {
-    // Create matrix A and vector b
+std::pair<Matrix<T>, std::vector<T>> generate_random_system(size_t size, unsigned int seed,
+                                                            double min_val = -100.0,
+                                                            double max_val = 100.0) {
     Matrix<T> A(size, size);
-    A.randomize(min_val, max_val);
-    
+    A.randomize(min_val, max_val, seed);
+
+    std::mt19937 gen(seed ^ 0x9e3779b9u);
+    std::uniform_real_distribution<double> dist(min_val, max_val);
+    std::uniform_int_distribution<int> bump(1, 10);
+
     // Make the matrix diagonally dominant to ensure it's well-conditioned
     for (size_t i = 0; i < size; ++i) {
         T row_sum = 0;
@@ -147,19 +156,15 @@ std::pair<Matrix<T>, std::vector<T>> generate_random_system(size_t size, double 
             if (i != j) row_sum += std::fabs(A(i, j));
         }
         // Make diagonal element greater than sum of other elements in the row
-        A(i, i) = row_sum + static_cast<T>(1.0 + (rand() % 10));
+        A(i, i) = row_sum + static_cast<T>(bump(gen));
     }
-    
+
     // Create a random right-hand side vector
     std::vector<T> b(size);
-    std::random_device rd;
-    std::mt19937 gen(42); // Fixed seed for reproducibility
-    std::uniform_real_distribution<double> dist(min_val, max_val);
-    
     for (size_t i = 0; i < size; ++i) {
         b[i] = static_cast<T>(dist(gen));
     }
-    
+
     return {A, b};
 }
 
@@ -172,21 +177,27 @@ std::vector<T> solve_matrix_system(const Matrix<T>& A_orig, const std::vector<T>
     T* A_copy = new T[n * n];
     T* b_copy = new T[n];
     
-    // Debug prints for investigating values
-    std::cout << "Matrix A values before LinearSolve:" << std::endl;
-    for (size_t i = 0; i < std::min(n, size_t(5)); ++i) {
-        for (size_t j = 0; j < std::min(n, size_t(5)); ++j) {
-            std::cout << static_cast<double>(A_orig(i, j)) << " ";
+    for (size_t i = 0; i < n; ++i) {
+        for (size_t j = 0; j < n; ++j) {
             A_copy[i + j*n] = A_orig(i, j);
         }
-        std::cout << std::endl;
         b_copy[i] = b_orig[i];
     }
-    std::cout << "Vector b values before LinearSolve:" << std::endl;
-    for (size_t i = 0; i < std::min(n, size_t(5)); ++i) {
-        std::cout << static_cast<double>(b_orig[i]) << " ";
+
+    if (VERBOSE_SOLVE) {
+        std::cout << "Matrix A values before LinearSolve (leading block):" << std::endl;
+        for (size_t i = 0; i < std::min(n, size_t(5)); ++i) {
+            for (size_t j = 0; j < std::min(n, size_t(5)); ++j) {
+                std::cout << static_cast<double>(A_orig(i, j)) << " ";
+            }
+            std::cout << std::endl;
+        }
+        std::cout << "Vector b values before LinearSolve:" << std::endl;
+        for (size_t i = 0; i < std::min(n, size_t(5)); ++i) {
+            std::cout << static_cast<double>(b_orig[i]) << " ";
+        }
+        std::cout << std::endl;
     }
-    std::cout << std::endl;
     
     // Solve using RNP::LinearSolve
     int local_info = 0;
@@ -204,61 +215,12 @@ std::vector<T> solve_matrix_system(const Matrix<T>& A_orig, const std::vector<T>
         std::cerr << "LinearSolve returned error code: " << *info << std::endl;
     }
     
-    // Debug prints for investigating values
-    std::cout << "Solution x values after LinearSolve:" << std::endl;
-    for (size_t i = 0; i < std::min(n, size_t(5)); ++i) {
-        std::cout << static_cast<double>(b_copy[i]) << " ";
-    }
-    std::cout << std::endl;
-    
-    // Check for zeros in the solution
-    bool all_zeros = true;
-    for (size_t i = 0; i < n && all_zeros; ++i) {
-        if (b_copy[i] != static_cast<T>(0)) {
-            all_zeros = false;
+    if (VERBOSE_SOLVE) {
+        std::cout << "Solution x values after LinearSolve:" << std::endl;
+        for (size_t i = 0; i < std::min(n, size_t(5)); ++i) {
+            std::cout << static_cast<double>(b_copy[i]) << " ";
         }
-    }
-    
-    if (all_zeros) {
-        std::cerr << "Warning: Solution vector contains all zeros!" << std::endl;
-        // Let's try a workaround by using double internally and converting back
-        if (std::is_same<T, hub_float>::value) {
-            std::cerr << "Attempting workaround for hub_float..." << std::endl;
-            
-            // Create double versions
-            double* A_double = new double[n * n];
-            double* b_double = new double[n];
-            
-            // Convert hub_float to double
-            for (size_t i = 0; i < n; ++i) {
-                for (size_t j = 0; j < n; ++j) {
-                    A_double[i + j*n] = static_cast<double>(A_orig(i, j));
-                }
-                b_double[i] = static_cast<double>(b_orig[i]);
-            }
-            
-            // Solve with double
-            int double_info = 0;
-            RNP::LinearSolve<>(n, 1, A_double, n, b_double, n, &double_info);
-            
-            // Convert back to hub_float
-            for (size_t i = 0; i < n; ++i) {
-                b_copy[i] = static_cast<T>(b_double[i]);
-            }
-            
-            // Clean up
-            delete[] A_double;
-            delete[] b_double;
-            
-            // Update info
-            *info = double_info;
-            
-            std::cout << "After workaround, solution is:" << std::endl;
-            for (size_t i = 0; i < std::min(n, size_t(5)); ++i) {
-                std::cout << static_cast<double>(b_copy[i]) << " ";
-            }
-            std::cout << std::endl;
-        }
+        std::cout << std::endl;
     }
     
     // Convert result to vector
@@ -341,8 +303,12 @@ void run_exhaustive_test() {
         while (trial < max_trials && (!float_stable || !hub_stable)) {
             std::cout << "Trial " << trial + 1 << " of max " << max_trials << std::endl;
             
-            // Generate a random system
-            auto [A_double, b_double] = generate_random_system<double>(size);
+            // Generate a random system. The seed mixes the size and the trial
+            // index, so every trial solves a different system while the sweep as
+            // a whole stays reproducible.
+            const unsigned int seed =
+                static_cast<unsigned int>(size * 1000003u + trial * 7919u + 42u);
+            auto [A_double, b_double] = generate_random_system<double>(size, seed);
             
             // Solve with double precision (reference solution)
             std::vector<double> x_double;
@@ -404,62 +370,18 @@ void run_exhaustive_test() {
             // Solve with hub_float precision
             std::vector<hub_float> x_hub;
             try {
-                // First try the specialized matrix class solver
-                x_hub = solve_using_matrix_class(A_hub, b_hub);
-                
-                // If we get an empty or all-zero solution, try the workaround
-                bool all_zeros = true;
-                for (const auto& val : x_hub) {
-                    if (val != static_cast<hub_float>(0)) {
-                        all_zeros = false;
-                        break;
+                x_hub = solve_matrix_system(A_hub, b_hub);
+
+                if (VERBOSE_SOLVE) {
+                    std::cout << "hub_float solution: ";
+                    for (size_t i = 0; i < std::min(x_hub.size(), size_t(5)); ++i) {
+                        std::cout << static_cast<double>(x_hub[i]) << " ";
                     }
+                    std::cout << std::endl;
                 }
-                
-                if (all_zeros || x_hub.empty()) {
-                    std::cerr << "Got all zeros or empty solution from hub_float solver, trying direct conversion" << std::endl;
-                    
-                    // Create a direct conversion from the double solution
-                    x_hub.resize(size);
-                    for (size_t i = 0; i < size; ++i) {
-                        x_hub[i] = static_cast<hub_float>(x_double[i]);
-                    }
-                    
-                    // Validate that this solution is reasonable
-                    std::vector<hub_float> Ax = A_hub.multiply(x_hub);
-                    double error = 0.0;
-                    for (size_t i = 0; i < size; ++i) {
-                        error += std::abs(static_cast<double>(Ax[i] - b_hub[i]));
-                    }
-                    error /= size;
-                    
-                    std::cout << "Direct conversion solution with average error: " << error << std::endl;
-                    if (error > 1.0) {
-                        std::cerr << "Direct conversion solution has high error, falling back to original solution" << std::endl;
-                        x_hub = solve_matrix_system(A_hub, b_hub);
-                    }
-                }
-                
-                std::cout << "hub_float solution: ";
-                for (size_t i = 0; i < std::min(x_hub.size(), size_t(5)); ++i) {
-                    std::cout << static_cast<double>(x_hub[i]) << " ";
-                }
-                std::cout << std::endl;
             } catch (const std::exception& e) {
                 std::cerr << "Error solving hub_float precision: " << e.what() << std::endl;
-                
-                // As fallback, try direct conversion from double
-                std::cout << "Using direct conversion from double as fallback" << std::endl;
-                x_hub.resize(size);
-                for (size_t i = 0; i < size; ++i) {
-                    x_hub[i] = static_cast<hub_float>(x_double[i]);
-                }
-                
-                std::cout << "Fallback hub_float solution: ";
-                for (size_t i = 0; i < std::min(x_hub.size(), size_t(5)); ++i) {
-                    std::cout << static_cast<double>(x_hub[i]) << " ";
-                }
-                std::cout << std::endl;
+                continue;   // skip the trial rather than substitute another format
             }
             
             // Save hub_float solution
