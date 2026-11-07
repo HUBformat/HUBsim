@@ -22,8 +22,12 @@ std::vector<std::pair<hub_float, std::string>> OperationTester::getSpecialValues
         {hub_float(-1.0), "Negative One"},
         {hub_float(std::numeric_limits<double>::infinity()), "Infinity"},
         {hub_float(-std::numeric_limits<double>::infinity()), "Negative Infinity"},
-        {hub_float(hub_float::lowestVal), "Min Positive"},
-        {hub_float(-hub_float::lowestVal), "Min Negative"}
+        // Given by their encodings. lowestVal is the value the zero encoding displaces, so
+        // building these from it emits 0x0 and duplicates the Zero vector; (exp = 0, frac = 1)
+        // is the smallest positive the format can actually encode.
+        {hub_float(static_cast<uint32_t>(1)), "Min Positive"},
+        {hub_float(static_cast<uint32_t>(1) |
+                   (static_cast<uint32_t>(1) << (EXP_BITS + MANT_BITS))), "Min Negative"}
     };
 }
 
