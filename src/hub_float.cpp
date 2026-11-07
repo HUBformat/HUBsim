@@ -195,7 +195,12 @@ hub_float::operator double() const {
 double hub_float::quantize(double d)
 {
     double special_result;
-    return handle_special_cases(d, special_result) ? special_result : apply_hub_grid(d);
+    if (handle_special_cases(d, special_result)) return special_result;
+    const double g = apply_hub_grid(d);
+    // The HUB cell just above 1 has no encoding of its own: (exp = 2^(EXP_BITS-1), frac = 0) is
+    // the special one, which decodes back as exactly +/-1. Carry what the hardware carries.
+    const double unencodable_one = 1.0 + std::ldexp(1.0, -(MANT_BITS + 1));
+    return (g == unencodable_one) ? 1.0 : (g == -unencodable_one) ? -1.0 : g;
 }
 
 /*
