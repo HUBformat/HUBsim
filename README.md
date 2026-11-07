@@ -76,7 +76,10 @@ The implementation uses a double as the internal storage format, with bit manipu
 - Special case handling for values like infinity, NaN, and subnormals
 - Proper extraction of bit fields for string representations
 - Support for all basic arithmetic operations
-- Detection and correction of double rounding in float32 FMA emulation (EXP_BITS=8, MANT_BITS=23) for accurate single-precision results
+- Exact addition, subtraction, multiplication, division and square root: with at most 23 mantissa bits,
+  the double backend cannot round a result into the wrong HUB cell, so no correction is needed
+- A fused multiply-add that is also exact, at any supported width: the product is computed exactly,
+  the error of the addition is recovered, and the result is nudged off a grid line when the exact value is not on it
 
 ## References
 
