@@ -30,6 +30,24 @@
 #endif
 
 /*
+    Format limits.
+    MANT_BITS <= 23 is what makes the double backend exact for every operation: the product of
+    two HUB significands stays within 53 bits, and no quotient or square root can land close
+    enough to a cell boundary for the backend's rounding to carry it across. The 32-bit total is
+    what toHexString() and the hub_float(uint32_t) constructor pack into a single word.
+
+    Note on the exponent range: this library uses the full exponent field, which matches the
+    FPHUB units (both the standalone ones and those in the CVFPU integration). The FPU in the
+    neorv32 fork is stricter: it reserves the whole exponent field 0x00 (flushed to zero) and
+    0xFF (saturated to infinity), so its smallest produced magnitude is one exponent above and
+    its largest one below this library's. That difference is deliberate and left as is.
+*/
+static_assert(MANT_BITS <= 23,
+              "hub_float: MANT_BITS must be at most 23 for the double backend to stay exact");
+static_assert(1 + EXP_BITS + MANT_BITS <= 32,
+              "hub_float: sign + exponent + mantissa must fit in 32 bits");
+
+/*
     Class: hub_float
     A custom floating-point class with configurable precision and a "hub" bit for consistent rounding.
 
