@@ -197,10 +197,22 @@ double hub_float::quantize(double d)
     double special_result;
     if (handle_special_cases(d, special_result)) return special_result;
     const double g = apply_hub_grid(d);
-    // The HUB cell just above 1 has no encoding of its own: (exp = 2^(EXP_BITS-1), frac = 0) is
-    // the special one, which decodes back as exactly +/-1. Carry what the hardware carries.
-    const double unencodable_one = 1.0 + std::ldexp(1.0, -(MANT_BITS + 1));
-    return (g == unencodable_one) ? 1.0 : (g == -unencodable_one) ? -1.0 : g;
+    // Two HUB cells have no encoding of their own, because the special values take the patterns
+    // they would have used: the cell just above 1 would be (exp = 2^(EXP_BITS-1), frac = 0),
+    // which is the one, and the lowest cell would be (exp = 0, frac = 0), which is zero. Carry
+    // what those patterns decode to, so no unencodable value ever leaves this function.
+    // Both cells have every explicit fraction bit zero, so the sign can be masked off and the
+    // magnitude compared against two compile-time patterns; the three special encodings are
+    // sign-symmetric, so this cannot conflate them. g is never +/-0 here, because
+    // handle_special_cases() has already returned for zeros.
+    uint64_t bits;
+    std::memcpy(&bits, &g, sizeof(bits));
+    constexpr uint64_t SIGN     = 1ULL << 63;
+    constexpr uint64_t ONE_CELL = (1023ULL << 52) | HUB_BIT;  // the cell just above 1
+    const uint64_t magnitude = bits & ~SIGN;
+    if (magnitude == ONE_CELL)   return std::copysign(1.0, g);
+    if (magnitude == minPosBits) return std::copysign(0.0, g);
+    return g;
 }
 
 /*
