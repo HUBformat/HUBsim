@@ -93,24 +93,11 @@ hub_float::hub_float(double d) {
     }
 
 
-    // Check if 'd' is already on our custom grid
-    // We'll do that by re-applying the mask logic and comparing bits.
-    uint64_t bits;
-    std::memcpy(&bits, &d, sizeof(d));
-
-    // If it's on the grid, the lower SHIFT bits must be exactly
-    // HUB_BIT in that block (assuming normal).
-    const uint64_t mask = ((1ULL << SHIFT) - 1ULL);  // SHIFT lower bits
-    const uint64_t desired = HUB_BIT;                // we want exactly this pattern
-
-    if ((bits & mask) == desired) {
-        // Already on the hub grid
-        value = d;
-    } else {
-        // Not on the grid, quantize by converting to float (round to nearest)
-        // then re-running through quantize
-        value = quantize(d);
-    }
+    // Round onto the HUB grid. There is deliberately no fast path for a value that is already
+    // on the grid: quantization is idempotent for such a value, and routing everything through
+    // quantize() is what keeps the constructor from admitting one of the two values the format
+    // cannot encode (the cell just above 1, and the lowest cell).
+    value = quantize(d);
 }
 
 /*
